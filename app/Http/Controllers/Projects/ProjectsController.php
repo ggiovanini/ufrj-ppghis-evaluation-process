@@ -17,25 +17,6 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ProjectsController extends Controller
 {
-    public function import(ProjectsImportRequest $request, SelectionProcess $selection): RedirectResponse
-    {
-        $projects = Excel::toCollection(new ProjectsExcelImport, $request->file('file'));
-        $importProjectsService = new ImportProjectsService(
-            $selection,
-            new Project(),
-        );
-        $createdCount = $importProjectsService->import($projects);
-
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => "{$createdCount} Projetos importados com sucesso."
-        ]);
-
-        return to_route('selection.projects', [
-            'selection' => $selection->id
-        ]);
-    }
-
     public function index(Request $request, SelectionProcess $selection): Response
     {
         Gate::authorize('project.view');
@@ -44,5 +25,25 @@ class ProjectsController extends Controller
             'selection' => $selection,
             'projects' => $selection->projects,
         ]);
+    }
+
+    public function show(SelectionProcess $selection, Project $project)
+    {
+
+    }
+
+    public function edit(SelectionProcess $selection, Project $project)
+    {
+
+    }
+
+    public function update(SelectionProcess $selection, Project $project)
+    {
+
+    }
+
+    public function destroy(SelectionProcess $selection, Project $project)
+    {
+
     }
 }

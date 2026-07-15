@@ -95,6 +95,20 @@ flowchart TD
     K --> L[Publicação dos resultados]
 ```
 
+#### Fluxo de estados do projeto
+
+```mermaid
+stateDiagram-v2
+    [*] --> Imported
+    Imported --> Review
+    Review --> Rejected
+    Review --> WrittenExam
+    WrittenExam --> Rejected
+    WrittenExam --> Committee
+    Committee --> Rejected
+    Committee --> Finished
+```
+
 ### Modelo do domínio
 
 O sistema foi projetado seguindo princípios de Domain-Driven Design (DDD), mantendo o domínio organizado em entidades com responsabilidades bem definidas.
@@ -109,6 +123,19 @@ O sistema foi projetado seguindo princípios de Domain-Driven Design (DDD), mant
 * WrittenExam
 * CommitteeEvaluation
 * FinalResult
+
+```mermaid
+classDiagram
+    SelectionProcess "1" --> "*" Project
+    SelectionProcess "1" --> "1" ReviewForm
+
+    Project "1" --> "*" ReviewAssignment
+    ReviewAssignment "1" --> "1" Review
+
+    Project "1" --> "1" WrittenExam
+    Project "1" --> "1" CommitteeEvaluation
+    Project "1" --> "1" FinalResult
+```
 
 ### Controle de acesso
 
