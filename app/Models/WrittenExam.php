@@ -10,6 +10,7 @@ class WrittenExam extends Model
     protected $fillable = [
         'project_id',
         'score',
+        'user_id',
         'recorded_at',
     ];
 

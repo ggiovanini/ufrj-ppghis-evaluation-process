@@ -14,52 +14,34 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class SelectionProcessController extends Controller
 {
-    public function index()
-    {
+    public function index() {}
 
-    }
+    public function store() {}
 
-    public function store()
-    {
-
-    }
-
-    public function show(SelectionProcess $selection)
-    {
-
-    }
+    public function show(SelectionProcess $selection) {}
 
     public function import(ProjectsImportRequest $request, SelectionProcess $selection): RedirectResponse
     {
         $projects = Excel::toCollection(new ProjectsExcelImport, $request->file('file'));
         $importProjectsService = new ImportProjectsService(
             $selection,
-            new Project(),
+            new Project,
         );
         $createdCount = $importProjectsService->import($projects);
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => "{$createdCount} Projetos importados com sucesso."
+            'message' => "{$createdCount} Projetos importados com sucesso.",
         ]);
 
         return to_route('selection.projects.index', [
-            'selection' => $selection->id
+            'selection' => $selection->id,
         ]);
     }
 
-    public function edit(SelectionProcess $selection)
-    {
+    public function edit(SelectionProcess $selection) {}
 
-    }
+    public function update(SelectionProcess $selection) {}
 
-    public function update(SelectionProcess $selection)
-    {
-
-    }
-
-    public function destroy(SelectionProcess $selection)
-    {
-
-    }
+    public function destroy(SelectionProcess $selection) {}
 }

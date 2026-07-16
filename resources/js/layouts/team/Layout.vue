@@ -1,27 +1,53 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { PlusCircle, List, ListFilter, UserCogIcon } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
+import { create, index, role } from '@/routes/team';
 import type { NavItem } from '@/types';
 
-const props = defineProps<{
-    title: string;
-    description: string;
-    sidebarNavItems: NavItem[]
-}>();
+const sidebarNavItems: NavItem[] = [
+    {
+        title: 'Criar novo',
+        href: create(),
+        icon: PlusCircle,
+    },
+    {
+        title: 'Todos',
+        href: index(),
+        icon: List,
+    },
+    {
+        title: 'Administradores',
+        href: role({ role: 'admin' }),
+        icon: ListFilter,
+    },
+    {
+        title: 'Avaliadores',
+        href: role({ role: 'reviewer' }),
+        icon: ListFilter,
+    },
+    {
+        title: 'Banca de Mestrado',
+        href: role({ role: 'master_committee' }),
+        icon: ListFilter,
+    },
+    {
+        title: 'Banca de Doutorado',
+        href: role({ role: 'doctorate_committee' }),
+        icon: ListFilter,
+    },
+];
 
-const { isCurrentOrParentUrl } = useCurrentUrl();
+const { isCurrentUrl } = useCurrentUrl();
 </script>
 
 <template>
     <div class="px-4 py-6">
-        <Heading
-            :title="title"
-            :description="description"
-        />
+        <Heading title="Equipe" description="Gerenciar membros da equipe" :icon="UserCogIcon" />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
@@ -30,12 +56,12 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                     aria-label="Settings"
                 >
                     <Button
-                        v-for="item in props.sidebarNavItems"
+                        v-for="item in sidebarNavItems"
                         :key="toUrl(item.href)"
                         variant="ghost"
                         :class="[
                             'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
+                            { 'bg-muted': isCurrentUrl(item.href) },
                         ]"
                         as-child
                     >
@@ -49,8 +75,8 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
             <Separator class="my-6 lg:hidden" />
 
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
+            <div class="flex-1">
+                <section class="w-full space-y-12">
                     <slot />
                 </section>
             </div>

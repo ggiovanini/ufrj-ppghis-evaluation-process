@@ -2,82 +2,148 @@
 
 namespace App\Http\Controllers\Team;
 
+use App\Domain\Team\Services\RoleService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Team\TeamDeleteRequest;
 use App\Http\Requests\Team\TeamStoreRequest;
 use App\Http\Requests\Team\TeamUpdateRequest;
+use App\Http\Resources\TeamResource;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
 class TeamController extends Controller
 {
     public function index(Request $request): Response
     {
-        return Inertia::render('team/List');
+        Gate::authorize('users.manage');
+
+        $users = User::query()
+            ->with('roles')
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->sort, function ($query, $sort) use ($request) {
+                $query->orderBy($sort, $request->direction ?? 'asc');
+            }, function ($query) {
+                $query->orderBy('name')->orderBy('email');
+            })
+            ->paginate()
+            ->withQueryString();
+
+        return Inertia::render('team/List', [
+            'users' => TeamResource::collection($users),
+            'filters' => $request->only(['search', 'sort', 'direction']),
+        ]);
     }
 
-    public function role(Request $request): Response
+    public function role(Request $request, string $role): Response
     {
-        return Inertia::render('team/ListByRole');
+        Gate::authorize('users.manage');
+
+        $users = User::role($role)->with('roles')
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->sort, function ($query, $sort) use ($request) {
+                $query->orderBy($sort, $request->direction ?? 'asc');
+            }, function ($query) {
+                $query->orderBy('name')->orderBy('email');
+            })
+            ->paginate()
+            ->withQueryString();
+
+        return Inertia::render('team/List', [
+            'users' => TeamResource::collection($users),
+            'currentRole' => $role,
+            'filters' => $request->only(['search', 'sort', 'direction']),
+        ]);
     }
 
     public function create(Request $request): Response
     {
-        return Inertia::render('team/Create');
+        Gate::authorize('users.manage');
+
+        return Inertia::render('team/Create', [
+            'roles' => (new RoleService)->translate(Role::all()),
+        ]);
     }
 
     public function store(TeamStoreRequest $request): RedirectResponse
     {
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Criado.'
+            'message' => 'Criado.',
         ]);
 
-        $user = User::create($request->validated(['name', 'email', 'password']));
+        $user = User::create($request->safe()->only(['name', 'email', 'password']));
         $user->markEmailAsVerified();
-        $validated = $request->validated(['roles']);
-        $user->syncRoles($validated['roles']);
+        $user->syncRoles($request->validated('roles', []));
 
         return to_route('team.show', [
-            'team' => $user->id
+            'user' => $user->id,
         ]);
     }
 
     public function show(Request $request, User $user): Response
     {
+        Gate::authorize('users.manage');
+
         return Inertia::render('team/Show', [
-            'user' => $user
+            'user' => new TeamResource($user->load('roles')),
+            'stats' => [
+                'to_evaluate' => $user->reviewAssignments()->whereDoesntHave('review', function ($query) {
+                    $query->whereNotNull('submitted_at');
+                })->count(),
+                'evaluated' => $user->reviewAssignments()->whereHas('review', function ($query) {
+                    $query->whereNotNull('submitted_at');
+                })->count(),
+                'written_exams' => $user->writtenExams()->count(),
+                'committee_evaluations' => $user->committeeEvaluations()->count(),
+            ],
         ]);
     }
 
     public function edit(Request $request, User $user): Response
     {
+        Gate::authorize('users.manage');
+
         return Inertia::render('team/Edit', [
-            'user' => $user
+            'user' => new TeamResource($user->load('roles')),
+            'roles' => (new RoleService)->translate(Role::all()),
         ]);
     }
 
     public function update(TeamUpdateRequest $request, User $user): RedirectResponse
     {
-        $user->update($request->validated(['name', 'email']));
-        $validated = $request->validated(['roles']);
+        $user->update($request->safe()->only(['name', 'email']));
+        $validated = $request->validated();
 
-        if ($validated['password'])
-            $user->update($request->validated(['password']));
+        if ($request->filled('password')) {
+            $user->update(['password' => $validated['password']]);
+        }
 
-        if ($validated['roles'] !== $user->hasExactRoles($validated['roles']))
-            $user->syncRoles([$validated['roles']]);
+        if (isset($validated['roles'])) {
+            $user->syncRoles($validated['roles']);
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Atualizado.'
+            'message' => 'Atualizado.',
         ]);
 
         return to_route('team.edit', [
-            'team' => $user->id
+            'user' => $user->id,
         ]);
     }
 
@@ -87,9 +153,9 @@ class TeamController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Removido.'
+            'message' => 'Removido.',
         ]);
 
-        return redirect('team.index');
+        return to_route('team.index');
     }
 }

@@ -20,6 +20,22 @@ class TeamStoreRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('roles')) {
+            $roles = $this->roles;
+            if (is_string($roles)) {
+                $roles = explode(',', $roles);
+            } elseif (is_array($roles) && count($roles) === 1 && is_string($roles[0]) && str_contains($roles[0], ',')) {
+                $roles = explode(',', $roles[0]);
+            }
+
+            $this->merge([
+                'roles' => array_filter(array_map('trim', (array) $roles)),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()->can('users.manage');

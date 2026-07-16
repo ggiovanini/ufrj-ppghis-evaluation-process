@@ -18,10 +18,11 @@ class TeamDeleteRequest extends FormRequest
     {
         $user = $this->user();
         $currentUser = $this->route('user');
-        if ($user->id === $currentUser->id)
+        if ($user->id === $currentUser->id) {
             throw new YouCantRemoveYourselfException(
-                "Você não pode remover seu próprio usuário por esse caminho."
+                'Você não pode remover seu próprio usuário por esse caminho.'
             );
+        }
 
         return $this->user()->can('users.manage');
     }

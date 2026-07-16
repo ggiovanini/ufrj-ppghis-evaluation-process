@@ -15,20 +15,37 @@ class TeamUpdateRequest extends FormRequest
         return [
             'name' => ['nullable'],
             'email' => ['nullable', 'email', 'max:254'],
-            'password' => ['required', 'string', Password::default()],
+            'password' => ['nullable', 'string', Password::default()],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['required', Rule::enum(UserRoles::class)],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('roles')) {
+            $roles = $this->roles;
+            if (is_string($roles)) {
+                $roles = explode(',', $roles);
+            } elseif (is_array($roles) && count($roles) === 1 && is_string($roles[0]) && str_contains($roles[0], ',')) {
+                $roles = explode(',', $roles[0]);
+            }
+
+            $this->merge([
+                'roles' => array_filter(array_map('trim', (array) $roles)),
+            ]);
+        }
     }
 
     public function authorize(): bool
     {
         $user = $this->user();
         $currentUser = $this->route('user');
-        if ($user->id === $currentUser->id)
+        if ($user->id === $currentUser->id) {
             throw new YouCantRemoveYourselfException(
-                "Você não pode atualizar seu próprio usuário por esse caminho."
+                'Você não pode atualizar seu próprio usuário por esse caminho.'
             );
+        }
 
         return $this->user()->can('users.manage');
     }
