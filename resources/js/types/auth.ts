@@ -15,6 +15,10 @@ export type Role = {
 
 export type Auth = {
     user: User;
+    roles: Role[];
+    permissions: Permission[];
+    currentSelectionProcess: any;
+    is_impersonating: boolean;
 };
 
 /* @chisel-passkeys */
@@ -26,3 +30,29 @@ export type Passkey = {
     last_used_at_diff: string | null;
 };
 /* @end-chisel-passkeys */
+
+export type Permission = 'projects.import'
+    | 'projects.view'
+    | 'projects.manage'
+    | 'review.assign'
+    | 'review.evaluate'
+    | 'review.submit'
+    | 'review.update'
+    | 'review.view-own'
+    | 'review.results.view'
+    | 'review.results.calculate'
+    | 'written-exam.record'
+    | 'committee.manage'
+    | 'committee.assign-members'
+    | 'committee.evaluate'
+    | 'committee.submit'
+    | 'committee.update'
+    | 'committee.results.view'
+    | 'committee.finalize'
+    | 'results.view'
+    | 'results.publish'
+    | 'users.manage';
+
+export function authCan(auth: Auth, permission: Permission): boolean {
+    return auth.permissions.includes(permission);
+}

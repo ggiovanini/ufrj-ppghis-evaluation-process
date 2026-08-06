@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Shared\Types\UserRoles;
+use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -11,6 +12,10 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->withoutVite();
     Permission::firstOrCreate(['name' => 'users.manage']);
+
+    foreach (UserRoles::cases() as $role) {
+        Role::firstOrCreate(['name' => $role->value]);
+    }
 });
 
 test('only users with users.manage permission can access team creation page', function () {
@@ -34,11 +39,6 @@ test('only users with users.manage permission can access team creation page', fu
 test('a new team member can be created', function () {
     $user = User::factory()->create();
     $user->givePermissionTo('users.manage');
-
-    // Ensure roles exist in DB for Spatie
-    foreach (UserRoles::cases() as $role) {
-        Role::firstOrCreate(['name' => $role->value]);
-    }
 
     $response = $this->actingAs($user)
         ->post(route('team.store'), [
@@ -75,9 +75,6 @@ test('team members can be filtered by role', function () {
     $user = User::factory()->create();
     $user->givePermissionTo('users.manage');
 
-    Role::firstOrCreate(['name' => UserRoles::ADMIN->value]);
-    Role::firstOrCreate(['name' => UserRoles::REVIEWER->value]);
-
     $admin = User::factory()->create();
     $admin->assignRole(UserRoles::ADMIN->value);
 
@@ -95,7 +92,10 @@ test('team members can be filtered by role', function () {
 });
 
 test('team member details can be viewed', function () {
-    $user = User::factory()->create();
+    $selection = SelectionProcess::factory()->create();
+    $user = User::factory()->create([
+        'current_selection_process_id' => $selection->id,
+    ]);
     $user->givePermissionTo('users.manage');
 
     $member = User::factory()->create();
@@ -106,10 +106,11 @@ test('team member details can be viewed', function () {
         ->assertInertia(fn ($page) => $page
             ->component('team/Show')
             ->has('user.data')
-            ->has('stats.to_evaluate')
-            ->has('stats.evaluated')
+            ->has('stats.total_reviews')
+            ->has('stats.total_reviewed')
             ->has('stats.written_exams')
             ->has('stats.committee_evaluations')
+            ->has('projects.data')
         );
 });
 
@@ -145,10 +146,6 @@ test('team member edit page can be accessed', function () {
 test('team member can be updated', function () {
     $user = User::factory()->create();
     $user->givePermissionTo('users.manage');
-
-    foreach (UserRoles::cases() as $role) {
-        Role::firstOrCreate(['name' => $role->value]);
-    }
 
     $member = User::factory()->create([
         'name' => 'Old Name',
@@ -190,10 +187,6 @@ test('team list page shows pagination', function () {
 test('team member can be created with roles as comma separated string', function () {
     $user = User::factory()->create();
     $user->givePermissionTo('users.manage');
-
-    foreach (UserRoles::cases() as $role) {
-        Role::firstOrCreate(['name' => $role->value]);
-    }
 
     $rolesString = UserRoles::ADMIN->value.','.UserRoles::REVIEWER->value;
 

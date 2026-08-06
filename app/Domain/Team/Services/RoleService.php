@@ -4,7 +4,6 @@ namespace App\Domain\Team\Services;
 
 use App\Domain\Shared\Types\UserRoles;
 use Illuminate\Support\Collection;
-use Spatie\Permission\Models\Role;
 
 class RoleService
 {
@@ -23,6 +22,7 @@ class RoleService
         foreach ($roles as $role) {
             $data[] = $this->role($role);
         }
+
         return $data;
     }
 

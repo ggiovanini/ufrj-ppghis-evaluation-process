@@ -16,6 +16,7 @@ import {
 import { watchDebounced } from '@vueuse/core';
 import { ref } from 'vue';
 import Pagination from '@/components/Pagination.vue';
+import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +44,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import team from '@/routes/team';
+import type { Reviewer } from '@/types/reviewer';
+import { authCan } from '@/types';
 
 interface PaginationLink {
     url: string | null;
@@ -50,15 +53,8 @@ interface PaginationLink {
     active: boolean;
 }
 
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    roles: { name: string; label: string }[];
-}
-
 interface DataPagination {
-    data: User[];
+    data: Reviewer[];
     links: {
         first: string;
         last: string;
@@ -88,7 +84,7 @@ const props = defineProps<{
 }>();
 
 const isConfirmingDeletion = ref(false);
-const userToDelete = ref<User | null>(null);
+const userToDelete = ref<Reviewer | null>(null);
 const search = ref(props.filters?.search || '');
 
 watchDebounced(
@@ -111,6 +107,7 @@ watchDebounced(
 
 const sortBy = (column: string) => {
     let direction: 'asc' | 'desc' = 'asc';
+
     if (props.filters?.sort === column && props.filters?.direction === 'asc') {
         direction = 'desc';
     }
@@ -141,7 +138,7 @@ const navigateToShow = (userId: number) => {
     router.visit(team.show(userId).url);
 };
 
-const confirmDeletion = (user: User) => {
+const confirmDeletion = (user: Reviewer) => {
     userToDelete.value = user;
     isConfirmingDeletion.value = true;
 };
@@ -163,9 +160,10 @@ const deleteUser = () => {
 
     <div class="space-y-4">
         <div
-            class="relative w-full overflow-hidden rounded-xl border bg-foreground/5 p-2"
+            class="relative flex w-full flex-col overflow-hidden rounded-xl border p-2"
         >
-            <div class="flex items-center justify-between gap-4 p-2 mb-2">
+            <PlaceholderPattern class="z-0" />
+            <div class="z-10 mb-2 flex items-center justify-between gap-4 p-2">
                 <div class="relative w-full max-w-sm">
                     <Search
                         class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -194,7 +192,7 @@ const deleteUser = () => {
             </div>
 
             <div
-                class="w-full overflow-hidden rounded-md border bg-card outline outline-foreground/30"
+                class="z-10 flex w-full overflow-hidden rounded-md border bg-card outline-2 outline-foreground/10"
             >
                 <Table>
                     <TableHeader>
@@ -237,9 +235,12 @@ const deleteUser = () => {
                                     />
                                 </div>
                             </TableHead>
+                            <TableHead>Atribuições</TableHead>
                             <TableHead>Papéis</TableHead>
-                            <TableHead class="flex-1 flex items-center justify-end pe-4">
-                                <Asterisk class="w-4 h-4"/>
+                            <TableHead
+                                class="flex flex-1 items-center justify-end pe-4"
+                            >
+                                <Asterisk class="h-4 w-4" />
                             </TableHead>
                         </TableRow>
                     </TableHeader>
@@ -250,10 +251,13 @@ const deleteUser = () => {
                             class="cursor-pointer"
                             @click="navigateToShow(user.id)"
                         >
-                            <TableCell class="font-medium whitespace-nowrap ps-4">
+                            <TableCell
+                                class="ps-4 font-medium whitespace-nowrap"
+                            >
                                 {{ user.name }}
                             </TableCell>
                             <TableCell>{{ user.email }}</TableCell>
+                            <TableCell>{{ user.completed_count }}/{{ user.assigned_count }}</TableCell>
                             <TableCell>
                                 <div class="flex flex-wrap gap-1">
                                     <Badge
@@ -313,7 +317,7 @@ const deleteUser = () => {
                     </TableBody>
                 </Table>
             </div>
-            <Pagination :meta="users.meta" />
+            <Pagination :meta="users.meta" class="z-10" />
         </div>
 
         <Dialog v-model:open="isConfirmingDeletion">

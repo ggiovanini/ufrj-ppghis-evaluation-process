@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Shared\Exceptions\DomainException;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -7,6 +8,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,9 +24,27 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    })->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (
+            DomainException $exception,
+            Request $request,
+        ) {
+            if ($request->hasHeader('X-Inertia')) {
+                Inertia::flash('toast', [
+                    'type' => 'error',
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return back();
+            }
+
+            return response()->json(
+                $exception->toArray(),
+                $exception->statusCode()
+            );
+        });
     })->create();

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectModality;
+use App\Domain\Projects\Types\ProjectStage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,21 +18,31 @@ class Project extends Model
 
     protected $fillable = [
         'candidate_name',
+        'register_id',
         'title',
+        'description',
         'modality',
+        'indication',
         'original_content',
         'content',
+        'homologation_status',
+        'homologation_reason',
         'stage',
+        'review_score',
+        'written_exam_score',
+        'committee_score',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'modality' => ProjectModality::class,
-            'original_content' => 'array',
-            'content' => 'array',
-        ];
-    }
+    protected $casts = [
+        'modality' => ProjectModality::class,
+        'original_content' => 'array',
+        'content' => 'array',
+        'homologation_status' => ProjectHomologationStatus::class,
+        'stage' => ProjectStage::class,
+        'review_score' => 'int',
+        'written_exam_score' => 'int',
+        'committee_score' => 'int',
+    ];
 
     public function selectionProcess(): BelongsTo
     {

@@ -2,18 +2,22 @@
 
 namespace Tests\Feature\SelectionProcess;
 
+use App\Models\Project;
 use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use ZipArchive;
 
 uses(RefreshDatabase::class);
 
 test('it can import projects through the controller', function () {
     // Garantir que a permissão exista
     Permission::create(['name' => 'projects.import', 'guard_name' => 'web']);
+    Role::create(['name' => 'reviewer', 'guard_name' => 'web']);
 
     $user = User::factory()->create();
     $user->givePermissionTo('projects.import');
@@ -27,7 +31,7 @@ test('it can import projects through the controller', function () {
         ->post(route('selection.import', ['selection' => $selectionProcess->id]), [
             'file' => $file,
         ]);
-    $response->assertRedirect(route('selection.projects.index', ['selection' => $selectionProcess->id]));
+    $response->assertRedirect(route('selection.show', ['selection' => $selectionProcess->id]));
 
     // Verificar se o projeto foi criado no banco
     $this->assertDatabaseHas('projects', [
@@ -35,6 +39,10 @@ test('it can import projects through the controller', function () {
         'candidate_name' => 'VANIA BARYNER DE BARROS',
         'title' => 'Políticas educacionais do Movimento Zapatista e do Movimento dos Trabalhadores Rurais Sem Terra (MST) Onde se aproximam e se afastam',
     ]);
+
+    $project = Project::where('candidate_name', 'VANIA BARYNER DE BARROS')->first();
+    expect($project->content)->not->toBeNull();
+    expect($project->content['documents'])->not->toBeEmpty();
 });
 
 test('it prevents import without permission', function () {
@@ -49,4 +57,54 @@ test('it prevents import without permission', function () {
         ]);
 
     $response->assertForbidden();
+});
+
+test('it lists and imports a ZIP from the inbox', function () {
+    Permission::create(['name' => 'projects.import', 'guard_name' => 'web']);
+    Role::create(['name' => 'reviewer', 'guard_name' => 'web']);
+
+    $user = User::factory()->create();
+    $user->givePermissionTo('projects.import');
+    $selectionProcess = SelectionProcess::factory()->create(['name' => 'Seleção PPGHIS 2027']);
+
+    Storage::fake('local');
+    Storage::fake('public');
+    Storage::disk('local')->put('inbox/projects.zip', '');
+
+    $archive = new ZipArchive;
+    $archive->open(Storage::disk('local')->path('inbox/projects.zip'));
+    $archive->addFile(base_path('tests/Fixtures/projects_import_template.xlsx'), 'imports/projects.xlsx');
+    $archive->addFromString('documents/readme.txt', 'Conteúdo extraído');
+    $archive->addFromString(
+        '00023_06-Q128_00-HISTORICO-VANIA-BRAYNER.pdf',
+        'Histórico da candidata',
+    );
+    $archive->close();
+
+    $this->actingAs($user)
+        ->get(route('selection.prepare', ['selection' => $selectionProcess->id]))
+        ->assertInertia(fn ($page) => $page->where('inboxFiles', ['projects.zip']));
+
+    $response = $this->actingAs($user)
+        ->post(route('selection.import', ['selection' => $selectionProcess->id]), [
+            'inbox_file' => 'projects.zip',
+        ]);
+
+    $response->assertRedirect(route('selection.show', ['selection' => $selectionProcess->id]));
+    Storage::disk('local')->assertMissing('inbox/projects.zip');
+    Storage::disk('local')->assertExists('outbox/projects.zip');
+    Storage::disk('public')->assertExists('selecao-ppghis-2027/imports/projects.xlsx');
+    Storage::disk('public')->assertExists('selecao-ppghis-2027/documents/readme.txt');
+    Storage::disk('public')->assertExists('selecao-ppghis-2027/00023_06-Q128_00-HISTORICO-VANIA-BRAYNER.pdf');
+    $this->assertDatabaseHas('projects', [
+        'selection_process_id' => $selectionProcess->id,
+        'candidate_name' => 'VANIA BARYNER DE BARROS',
+    ]);
+
+    $project = Project::where('candidate_name', 'VANIA BARYNER DE BARROS')->firstOrFail();
+    $document = collect($project->content['documents'])
+        ->firstWhere('name', 'HISTORICO-VANIA-BRAYNER.pdf');
+
+    expect($document['path'])->toBe('selecao-ppghis-2027/00023_06-Q128_00-HISTORICO-VANIA-BRAYNER.pdf')
+        ->and($document['url'])->toEndWith('/storage/selecao-ppghis-2027/00023_06-Q128_00-HISTORICO-VANIA-BRAYNER.pdf');
 });

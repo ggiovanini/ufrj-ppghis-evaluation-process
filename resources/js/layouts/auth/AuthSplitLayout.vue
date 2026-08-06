@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import imageBgAuth from '@/assets/images/bg-auth.jpg';
 import AppLogo from '@/components/AppLogo.vue';
 import { home } from '@/routes';
-import imageBgAuth from '@/assets/images/bg-auth.jpg';
 
 defineProps<{
     title?: string;

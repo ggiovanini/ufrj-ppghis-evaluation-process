@@ -17,7 +17,14 @@ class SelectionProcess extends Model
         'name',
         'description',
         'year',
+        'phase',
+        'review_form_id',
     ];
+
+    public static function current(): BelongsTo
+    {
+        return auth()->user()->currentSelectionProcess();
+    }
 
     protected function casts(): array
     {

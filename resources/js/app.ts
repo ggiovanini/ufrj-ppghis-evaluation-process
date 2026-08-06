@@ -2,6 +2,7 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import SelectionProcessLayout from '@/layouts/selection/Layout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import TeamLayout from '@/layouts/team/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
@@ -20,6 +21,10 @@ createInertiaApp({
                 return [AppLayout, SettingsLayout];
             case name.startsWith('team/'):
                 return [AppLayout, TeamLayout];
+            case name.startsWith('selection/') ||
+                name.startsWith('projects/') ||
+                name.startsWith('reviews/'):
+                return [AppLayout, SelectionProcessLayout];
             default:
                 return AppLayout;
         }

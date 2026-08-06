@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Domain\Review\Types\ReviewScore;
 use App\Domain\Review\Types\ReviewStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Review extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'review_assignment_id',
         'review_form_id',
@@ -15,13 +19,15 @@ class Review extends Model
         'score',
         'answers',
         'comments',
+        'questions',
         'submitted_at',
+        'pdf_path',
     ];
 
     protected $casts = [
         'status' => ReviewStatus::class,
+        'score' => ReviewScore::class,
         'answers' => 'json',
-        'score' => 'integer',
         'submitted_at' => 'datetime',
     ];
 

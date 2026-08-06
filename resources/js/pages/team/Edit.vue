@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { createForm, Head } from '@inertiajs/vue3';
+import { createForm, Head, Link } from '@inertiajs/vue3';
+import { ChevronLeft, SquareActivityIcon } from '@lucide/vue';
 import { ref } from 'vue';
 import TeamController from '@/actions/App/Http/Controllers/Team/TeamController';
 import Heading from '@/components/Heading.vue';
@@ -15,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import team from '@/routes/team';
 
 const props = defineProps<{
     user: {
@@ -48,7 +50,18 @@ const selectedRole = ref<string[]>(props.user.data.roles.map((r) => r.value));
         variant="small"
         :title="props.user.data.name"
         description="Edite o membro da equipe"
-    />
+        :icon="ChevronLeft"
+        :back="true"
+    >
+        <div class="flex flex-1 flex-row items-center justify-end gap-2">
+            <Button as-child>
+                <Link :href="team.show(user.data.id).url">
+                    <SquareActivityIcon class="mr-1 h-4 w-4" />
+                    Visualizar
+                </Link>
+            </Button>
+        </div>
+    </Heading>
 
     <div class="flex max-w-xl flex-col space-y-6">
         <TypedForm

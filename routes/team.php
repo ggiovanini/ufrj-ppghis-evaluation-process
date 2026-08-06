@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Team\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,4 +16,5 @@ Route::middleware(['auth', 'can:users.manage'])
         Route::get('/{user}/edit', [TeamController::class, 'edit'])->name('.edit');
         Route::patch('/{user}', [TeamController::class, 'update'])->name('.update');
         Route::delete('/{user}', [TeamController::class, 'destroy'])->name('.delete');
+        Route::post('/{user}/impersonate', [ImpersonationController::class, 'impersonate'])->name('.impersonate');
     });

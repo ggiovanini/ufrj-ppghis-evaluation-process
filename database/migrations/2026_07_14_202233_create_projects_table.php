@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Projects\Types\ProjectStage;
+use App\Domain\Review\Types\ReviewScore;
 use App\Domain\Review\Types\ReviewStatus;
 use App\Models\Project;
 use App\Models\ReviewAssignment;
@@ -19,13 +20,19 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(SelectionProcess::class)
                 ->constrained()->cascadeOnDelete();
+            $table->string('register_id');
             $table->string('candidate_name');
             $table->string('title');
+            $table->text('description')->nullable();
+            $table->string('indication')->nullable();
             $table->string('modality');
             $table->json('original_content');
             $table->json('content')->nullable();
             $table->string('stage')
                 ->default(ProjectStage::IMPORTED->value);
+            $table->integer('review_score')->nullable();
+            $table->integer('written_exam_score')->nullable();
+            $table->integer('committee_score')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -50,10 +57,11 @@ return new class extends Migration
                 ->unique()
                 ->constrained()->cascadeOnDelete();
             $table->foreignIdFor(ReviewForm::class)->constrained()->cascadeOnDelete();
-            $table->string('status')->default(ReviewStatus::DRAFT->value);
-            $table->integer('score')->nullable();
+            $table->string('status')->default(ReviewStatus::PENDENT->value);
+            $table->integer('score')->default(ReviewScore::PENDENT->value);
             $table->json('answers')->nullable();
             $table->text('comments')->nullable();
+            $table->text('questions')->nullable();
             $table->timestamp('submitted_at')->nullable();
 
             $table->timestamps();

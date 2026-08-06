@@ -7,10 +7,13 @@ import {
     Menu,
     Search,
     UserCogIcon,
+    Layers2Icon,
+    FileArchive,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import SelectionProcessSwitcher from '@/components/SelectionProcessSwitcher.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,8 +45,14 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import {
+    show as selectionProcessShow,
+    evaluate as evaluateList,
+} from '@/routes/selection';
+import routeProjects from '@/routes/selection/projects';
 import { index as teamList } from '@/routes/team';
 import type { BreadcrumbItem, NavItem } from '@/types';
+import { authCan } from '@/types';
 
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
@@ -60,32 +69,76 @@ const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Painel',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const mainNavItems = computed((): NavItem[] => {
+    const result: NavItem[] = [
+        {
+            title: 'Painel',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
 
-const rightNavItems: NavItem[] = [
-    {
-        title: 'Equipe',
-        href: teamList(),
-        icon: UserCogIcon,
-        target: '_self',
-    },
-    {
+    if (
+        auth.value.currentSelectionProcess &&
+        authCan(auth.value, 'users.manage')
+    ) {
+        result.push({
+            title: 'Processo seletivo',
+            href: selectionProcessShow(auth.value.currentSelectionProcess),
+            icon: Layers2Icon,
+        });
+    }
+
+    if (
+        auth.value.currentSelectionProcess &&
+        authCan(auth.value, 'projects.view')
+    ) {
+        result.push({
+            title: 'Projetos',
+            href: routeProjects.index(auth.value.currentSelectionProcess),
+            icon: FileArchive,
+        });
+    }
+
+    if (
+        auth.value.currentSelectionProcess &&
+        authCan(auth.value, 'review.evaluate')
+    ) {
+        result.push({
+            title: 'Avaliar',
+            href: evaluateList(auth.value.currentSelectionProcess),
+            icon: FileArchive,
+        });
+    }
+
+    return result;
+});
+
+const rightNavItems = computed((): NavItem[] => {
+    const result: NavItem[] = [];
+
+    if (authCan(auth.value, 'users.manage')) {
+        result.push({
+            title: 'Equipe',
+            href: teamList(),
+            icon: UserCogIcon,
+            target: '_self',
+        });
+    }
+
+    result.push({
         title: 'Arquivos',
         href: '#',
         icon: Folder,
-    },
-    {
+    });
+    result.push({
         title: 'Website',
         href: 'https://ppghis.historia.ufrj.br',
         icon: BookOpen,
-    },
-];
+    });
+
+    return result;
+});
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
 </script>
@@ -123,10 +176,9 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                                         :href="item.href"
                                         class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
                                         :class="
-                                            whenCurrentUrl(
-                                                item.href,
-                                                activeItemStyles,
-                                            )
+                                            isCurrentOrParentUrl(item.href)
+                                                ? activeItemStyles
+                                                : ''
                                         "
                                     >
                                         <component
@@ -171,6 +223,10 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                     <AppLogo class="h-9" />
                 </Link>
 
+                <div class="ml-4 hidden lg:block">
+                    <SelectionProcessSwitcher />
+                </div>
+
                 <!-- Desktop Menu -->
                 <div class="hidden h-full lg:flex lg:flex-1">
                     <NavigationMenu class="ml-10 flex h-full items-stretch">
@@ -211,16 +267,6 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
                 <div class="ml-auto flex items-center space-x-2">
                     <div class="relative flex items-center space-x-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            class="group h-9 w-9 cursor-pointer"
-                        >
-                            <Search
-                                class="size-5 opacity-80 group-hover:opacity-100"
-                            />
-                        </Button>
-
                         <div class="hidden space-x-1 lg:flex">
                             <template
                                 v-for="item in rightNavItems"

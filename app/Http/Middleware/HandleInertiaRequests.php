@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SelectionProcess;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,12 +36,33 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $currentSelectionProcess = null;
+
+        if ($user) {
+            $currentSelectionProcess = $user->currentSelectionProcess;
+
+            if (! $currentSelectionProcess) {
+                $currentSelectionProcess = SelectionProcess::latest('year')->latest('id')->first();
+                if ($currentSelectionProcess) {
+                    $user->update(['current_selection_process_id' => $currentSelectionProcess->id]);
+                    $user->refresh();
+                    $currentSelectionProcess = $user->currentSelectionProcess;
+                }
+            }
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'roles' => $user ? $user->getRoleNames() : [],
+                'permissions' => $user ? $user->getAllPermissions()->pluck('name') : [],
+                'currentSelectionProcess' => $currentSelectionProcess?->load('reviewForm'),
+                'is_impersonating' => $request->session()->has('impersonated_by'),
             ],
+            'selectionProcesses' => SelectionProcess::orderByDesc('year')->orderByDesc('id')->get(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

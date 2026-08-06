@@ -14,7 +14,9 @@ class TeamResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'roles' => (new RoleService())->translate($this->roles),
+            'roles' => (new RoleService)->translate($this->roles),
+            'assigned_count' => $this->assigned_count,
+            'completed_count' => $this->completed_count,
         ];
     }
 }

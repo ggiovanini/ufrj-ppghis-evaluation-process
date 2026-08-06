@@ -2,12 +2,20 @@
 
 namespace App\Http\Controllers\Team;
 
+use App\Domain\Front\Services\FrontIntegrationService;
+use App\Domain\Projects\Types\ProjectModality;
+use App\Domain\Review\Types\ReviewStatus;
+use App\Domain\Shared\Types\UserRoles;
 use App\Domain\Team\Services\RoleService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Team\TeamDeleteRequest;
 use App\Http\Requests\Team\TeamStoreRequest;
 use App\Http\Requests\Team\TeamUpdateRequest;
+use App\Http\Resources\ProjectResource;
+use App\Http\Resources\SelectionProcessResource;
 use App\Http\Resources\TeamResource;
+use App\Http\Resources\UserResource;
+use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +30,9 @@ class TeamController extends Controller
     {
         Gate::authorize('users.manage');
 
-        $users = User::query()
+        $selection = SelectionProcess::current()->first();
+
+        $query = User::query()
             ->with('roles')
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -34,9 +44,21 @@ class TeamController extends Controller
                 $query->orderBy($sort, $request->direction ?? 'asc');
             }, function ($query) {
                 $query->orderBy('name')->orderBy('email');
-            })
-            ->paginate()
-            ->withQueryString();
+            });
+
+        if ($selection) {
+            $query->withCount(['reviewAssignments as assigned_count' => function ($query) use ($selection) {
+                $query->whereIn('project_id', $selection->projects()->pluck('id'));
+            }])
+                ->withCount(['reviewAssignments as completed_count' => function ($query) use ($selection) {
+                    $query->whereIn('project_id', $selection->projects()->pluck('id'))
+                        ->whereHas('review', function ($query) {
+                            $query->where('status', ReviewStatus::SUBMITTED);
+                        });
+                }]);
+        }
+
+        $users = $query->paginate()->withQueryString();
 
         return Inertia::render('team/List', [
             'users' => TeamResource::collection($users),
@@ -48,7 +70,9 @@ class TeamController extends Controller
     {
         Gate::authorize('users.manage');
 
-        $users = User::role($role)->with('roles')
+        $selection = SelectionProcess::current()->first();
+
+        $query = User::role($role)->with('roles')
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
@@ -59,9 +83,21 @@ class TeamController extends Controller
                 $query->orderBy($sort, $request->direction ?? 'asc');
             }, function ($query) {
                 $query->orderBy('name')->orderBy('email');
-            })
-            ->paginate()
-            ->withQueryString();
+            });
+
+        if ($selection) {
+            $query->withCount(['reviewAssignments as assigned_count' => function ($query) use ($selection) {
+                $query->whereIn('project_id', $selection->projects()->pluck('id'));
+            }])
+                ->withCount(['reviewAssignments as completed_count' => function ($query) use ($selection) {
+                    $query->whereIn('project_id', $selection->projects()->pluck('id'))
+                        ->whereHas('review', function ($query) {
+                            $query->where('status', ReviewStatus::SUBMITTED);
+                        });
+                }]);
+        }
+
+        $users = $query->paginate()->withQueryString();
 
         return Inertia::render('team/List', [
             'users' => TeamResource::collection($users),
@@ -99,18 +135,44 @@ class TeamController extends Controller
     {
         Gate::authorize('users.manage');
 
+        $selection = auth()->user()->currentSelectionProcess;
+
+        $projectsQuery = $selection->projects()
+            ->with(['reviewAssignments.user'])
+            ->where(function ($query) use ($user) {
+                $query->whereHas('reviewAssignments', fn ($q) => $q->where('user_id', $user->id));
+
+                if ($user->hasRole(UserRoles::MASTER_COMMITTEE->value)) {
+                    $query->orWhere('modality', ProjectModality::MASTER->value);
+                }
+
+                if ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE->value)) {
+                    $query->orWhere('modality', ProjectModality::DOCTORATE->value);
+                }
+            });
+
+        $projects = $projectsQuery
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('candidate_name', 'like', "%{$search}%")
+                        ->orWhere('title', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->sort, function ($query, $sort) use ($request) {
+                $query->orderBy($sort, $request->direction ?? 'asc');
+            }, function ($query) {
+                $query->orderBy('candidate_name');
+            })
+            ->paginate()
+            ->withQueryString();
+
         return Inertia::render('team/Show', [
             'user' => new TeamResource($user->load('roles')),
-            'stats' => [
-                'to_evaluate' => $user->reviewAssignments()->whereDoesntHave('review', function ($query) {
-                    $query->whereNotNull('submitted_at');
-                })->count(),
-                'evaluated' => $user->reviewAssignments()->whereHas('review', function ($query) {
-                    $query->whereNotNull('submitted_at');
-                })->count(),
-                'written_exams' => $user->writtenExams()->count(),
-                'committee_evaluations' => $user->committeeEvaluations()->count(),
-            ],
+            'selection' => new SelectionProcessResource($selection),
+            'projects' => ProjectResource::collection($projects),
+            'stats' => FrontIntegrationService::selectionProcessStatsByReviewed($selection, $user),
+            'filters' => $request->only(['search', 'sort', 'direction']),
+            'reviewers' => UserResource::collection(User::role(UserRoles::REVIEWER->value)->get()),
         ]);
     }
 
