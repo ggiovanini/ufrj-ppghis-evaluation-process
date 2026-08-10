@@ -15,6 +15,8 @@ Route::middleware(['auth', 'can:users.manage'])
         Route::get('/{user}', [TeamController::class, 'show'])->name('.show');
         Route::get('/{user}/edit', [TeamController::class, 'edit'])->name('.edit');
         Route::patch('/{user}', [TeamController::class, 'update'])->name('.update');
+        Route::post('/{user}/assignments/{assignment}/reassign', [TeamController::class, 'reassignAssignment'])->name('.assignments.reassign');
+        Route::delete('/{user}/assignments/{assignment}', [TeamController::class, 'removeAssignment'])->name('.assignments.destroy');
         Route::delete('/{user}', [TeamController::class, 'destroy'])->name('.delete');
         Route::post('/{user}/impersonate', [ImpersonationController::class, 'impersonate'])->name('.impersonate');
     });

@@ -6,6 +6,7 @@ use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectStage;
 use App\Domain\SelectionProcess\Exceptions\ProjectsAreNotInComplianceException;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
+use App\Models\Project;
 use App\Models\ReviewAssignment;
 use App\Models\SelectionProcess;
 use Illuminate\Support\Collection;
@@ -133,8 +134,16 @@ class ReviewAssigmentService
         $selection->update([
             'phase' => SelectionProcessPhases::REVIEW,
         ]);
-        $selection->projects()
+
+        $projects = $selection->projects()
             ->where('homologation_status', ProjectHomologationStatus::APPROVED)
-            ->each(fn ($project) => $project->update(['stage' => ProjectStage::REVIEW]));
+            ->has('reviewAssignments', '>=', 3)
+            ->get();
+
+        $projects->each(function (Project $project) {
+            $project->update([
+                'stage', ProjectStage::REVIEW,
+            ]);
+        });
     }
 }

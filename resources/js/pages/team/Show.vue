@@ -160,6 +160,7 @@ const canImpersonate = computed(() => {
             :reviewers="reviewers"
             :filters="filters"
             :stats="stats"
+            :user-id="user.data.id"
         />
     </div>
 </template>

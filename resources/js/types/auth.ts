@@ -15,7 +15,7 @@ export type Role = {
 
 export type Auth = {
     user: User;
-    roles: Role[];
+    roles: string[];
     permissions: Permission[];
     currentSelectionProcess: any;
     is_impersonating: boolean;
@@ -31,7 +31,8 @@ export type Passkey = {
 };
 /* @end-chisel-passkeys */
 
-export type Permission = 'projects.import'
+export type Permission =
+    | 'projects.import'
     | 'projects.view'
     | 'projects.manage'
     | 'review.assign'

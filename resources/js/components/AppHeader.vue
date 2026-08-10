@@ -5,7 +5,6 @@ import {
     Folder,
     LayoutGrid,
     Menu,
-    Search,
     UserCogIcon,
     Layers2Icon,
     FileArchive,
@@ -49,6 +48,7 @@ import {
     show as selectionProcessShow,
     evaluate as evaluateList,
 } from '@/routes/selection';
+import selectionRoute from '@/routes/selection';
 import routeProjects from '@/routes/selection/projects';
 import { index as teamList } from '@/routes/team';
 import type { BreadcrumbItem, NavItem } from '@/types';
@@ -102,10 +102,13 @@ const mainNavItems = computed((): NavItem[] => {
 
     if (
         auth.value.currentSelectionProcess &&
-        authCan(auth.value, 'review.evaluate')
+        authCan(auth.value, 'review.evaluate') ||
+        authCan(auth.value, 'committee.evaluate')
     ) {
         result.push({
-            title: 'Avaliar',
+            title: authCan(auth.value, 'committee.evaluate')
+                ? 'Avaliar comitês'
+                : 'Avaliar',
             href: evaluateList(auth.value.currentSelectionProcess),
             icon: FileArchive,
         });
@@ -126,11 +129,18 @@ const rightNavItems = computed((): NavItem[] => {
         });
     }
 
-    result.push({
-        title: 'Arquivos',
-        href: '#',
-        icon: Folder,
-    });
+    if (
+        auth.value.currentSelectionProcess &&
+        auth.value.roles.includes('admin')
+    ) {
+        result.push({
+            title: 'Arquivos',
+            href: selectionRoute.documents.index(),
+            icon: Folder,
+            target: '_self',
+        });
+    }
+
     result.push({
         title: 'Website',
         href: 'https://ppghis.historia.ufrj.br',

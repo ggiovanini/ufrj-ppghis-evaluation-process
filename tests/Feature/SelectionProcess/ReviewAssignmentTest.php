@@ -1,9 +1,12 @@
 <?php
 
+use App\Domain\Review\Types\ReviewStatus;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
+use App\Models\Review;
 use App\Models\SelectionProcess;
 use App\Models\User;
+use App\Notifications\ReviewAssignmentReassignedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Permission;
@@ -15,7 +18,9 @@ beforeEach(function () {
     Notification::fake();
     $this->admin = User::factory()->create();
     Permission::firstOrCreate(['name' => 'projects.manage', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'users.manage', 'guard_name' => 'web']);
     $this->admin->givePermissionTo('projects.manage');
+    $this->admin->givePermissionTo('users.manage');
 
     $this->reviewerRole = Role::firstOrCreate(['name' => 'reviewer', 'guard_name' => 'web']);
     $this->reviewer = User::factory()->create(['name' => 'Paulo Fontes']);
@@ -43,6 +48,76 @@ test('can assign a reviewer to a project', function () {
         'project_id' => $this->project->id,
         'user_id' => $this->reviewer->id,
         'chosen_by_candidate' => false,
+    ]);
+});
+
+test('an administrator can reassign a project and notify both reviewers', function () {
+    $newReviewer = User::factory()->create(['name' => 'Novo Avaliador']);
+    $newReviewer->assignRole($this->reviewerRole);
+    $assignment = $this->project->reviewAssignments()->create([
+        'user_id' => $this->reviewer->id,
+        'chosen_by_candidate' => false,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('team.assignments.reassign', [$this->reviewer, $assignment]), [
+            'reviewer_id' => $newReviewer->id,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('review_assignments', [
+        'id' => $assignment->id,
+    ]);
+    $this->assertDatabaseHas('review_assignments', [
+        'project_id' => $this->project->id,
+        'user_id' => $newReviewer->id,
+    ]);
+    Notification::assertSentTo($this->reviewer, ReviewAssignmentReassignedNotification::class);
+    Notification::assertSentTo($newReviewer, ReviewAssignmentReassignedNotification::class);
+});
+
+test('an administrator cannot reassign a project that has already been evaluated', function () {
+    $newReviewer = User::factory()->create();
+    $newReviewer->assignRole($this->reviewerRole);
+    $assignment = $this->project->reviewAssignments()->create([
+        'user_id' => $this->reviewer->id,
+    ]);
+    Review::factory()->create([
+        'review_assignment_id' => $assignment->id,
+        'status' => ReviewStatus::SUBMITTED,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('team.assignments.reassign', [$this->reviewer, $assignment]), [
+            'reviewer_id' => $newReviewer->id,
+        ])
+        ->assertStatus(422);
+
+    $this->assertDatabaseHas('review_assignments', [
+        'id' => $assignment->id,
+        'user_id' => $this->reviewer->id,
+    ]);
+});
+
+test('an administrator can remove only the reviewer evaluation', function () {
+    $assignment = $this->project->reviewAssignments()->create([
+        'user_id' => $this->reviewer->id,
+    ]);
+    Review::factory()->create([
+        'review_assignment_id' => $assignment->id,
+        'status' => ReviewStatus::SUBMITTED,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->delete(route('team.assignments.destroy', [$this->reviewer, $assignment]))
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('review_assignments', [
+        'id' => $assignment->id,
+        'user_id' => $this->reviewer->id,
+    ]);
+    $this->assertDatabaseMissing('reviews', [
+        'review_assignment_id' => $assignment->id,
     ]);
 });
 

@@ -32,6 +32,8 @@ export interface Project {
     modality_label: ProjectModalityLabel;
     stage: ProjectStage;
     stage_label: ProjectStageLabel;
+    rejected_on_stage: ProjectStage | null;
+    rejected_on_stage_label: ProjectStageLabel | null;
     indication: string;
     has_indication: boolean;
     homologation_status: ProjectHomologationStatus;
@@ -44,8 +46,19 @@ export interface Project {
     review_score_label: string;
     written_exam_score: number;
     written_exam_score_label: string;
+    written_exam_score_passes: boolean | null;
     committee_score: number;
     committee_score_label: string;
+    committee_score_passes: boolean | null;
+    final_score: number;
+    final_score_label: string;
+    final_score_passes: boolean | null;
+    committee_evaluation?: {
+        score?: number | null;
+        passed?: boolean | null;
+        comments?: string | null;
+        submitted_at?: string | null;
+    } | null;
 }
 
 export interface ProjectWithDetail {
@@ -63,6 +76,7 @@ export interface ProjectWithDetail {
     modality_label: ProjectModalityLabel;
     stage: ProjectStage;
     stage_label: ProjectStageLabel;
+    rejected_on_stage: ProjectStage | null;
     original_content: Record<string, any>;
     content: {
         content?: Array<{ label: string; value: unknown }>;
@@ -86,6 +100,11 @@ export interface ProjectWithDetail {
     review_score_label: string;
     written_exam_score: number;
     written_exam_score_label: string;
+    written_exam_score_passes: boolean | null;
     committee_score: number;
     committee_score_label: string;
+    committee_score_passes: boolean | null;
+    final_score: number;
+    final_score_label: string;
+    final_score_passes: boolean | null;
 }

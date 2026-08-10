@@ -20,6 +20,7 @@ class HomologationReportExport implements FromCollection, WithHeadings, WithTitl
             ->map(fn ($project): array => [
                 $project->register_id,
                 $project->candidate_name,
+                $project->modality->label(),
                 $project->title,
                 $project->homologation_status->label(),
                 $project->homologation_reason,
@@ -28,7 +29,7 @@ class HomologationReportExport implements FromCollection, WithHeadings, WithTitl
 
     public function headings(): array
     {
-        return ['ID', 'Candidato', 'Título do projeto', 'Resultado', 'Motivo'];
+        return ['ID', 'Candidato', 'Modalidade', 'Título do projeto', 'Resultado', 'Motivo'];
     }
 
     public function title(): string

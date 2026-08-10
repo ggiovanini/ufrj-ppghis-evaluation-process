@@ -26,6 +26,10 @@ class ProjectsImportRequest extends FormRequest
                 'string',
                 Rule::in($this->availableInboxFiles()),
             ],
+            'modality' => [
+                'required',
+                Rule::in(['master', 'doctorate', 'both']),
+            ],
         ];
     }
 

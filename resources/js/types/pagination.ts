@@ -40,4 +40,6 @@ export interface DataFilters {
     search?: string;
     sort?: string;
     direction?: 'asc' | 'desc';
+    status?: string;
+    modality?: 'master' | 'doctorate';
 }

@@ -7,15 +7,28 @@ export interface SelectionProcessStats {
     total_project_reviews: number;
     written_examined: number;
     written_exams: number;
+    written_exam_passed: number;
+    written_exam_failed: number;
     committee_evaluated: number;
     committee_evaluations: number;
     homologation_total: number;
-    homologation_approved: number;
+    homologation_revised: number;
     homologation_rejected: number;
+    homologation_accepted: number;
     distribution_not_passed: number;
     review_not_passed: number;
+    review_passed: number;
     written_exam_not_passed: number;
     committee_not_passed: number;
+    committee_passed: number;
+    final_results: number;
+    final_resulted: number;
+}
+
+export interface DashboardData {
+    audience: 'management' | 'reviewer' | 'committee';
+    modality: 'master' | 'doctorate' | null;
+    stats: SelectionProcessStats;
 }
 
 export interface SelectionProcessPhaseObject {

@@ -12,6 +12,7 @@ import {
     Trash2,
     CheckCircle2,
     Settings2,
+    Dot,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { ref, computed } from 'vue';
@@ -20,6 +21,14 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import WrittenExamScoreModal from '@/components/selection/WrittenExamScoreModal.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,7 +47,6 @@ import {
 import selectionRoutes from '@/routes/selection';
 import type { DataFilters, DataPagination } from '@/types/pagination';
 import type { Project } from '@/types/projects';
-import type { Reviewer } from '@/types/reviewer';
 import type {
     SelectionProcessStats,
     SelectionProcess,
@@ -47,7 +55,6 @@ import type {
 const props = defineProps<{
     selection: SelectionProcess;
     projects: DataPagination<Project>;
-    reviewers: Reviewer[];
     filters?: DataFilters;
     stats: SelectionProcessStats;
 }>();
@@ -219,7 +226,7 @@ const insertScore = (project: Project) => {
 
                     <Button @click="finalize" :disabled="!isFullyAssigned">
                         <CheckCircle2 class="h-4 w-4" />
-                        Iniciar as avaliações de comitês
+                        Liberar mestrado para avaliações de comitês
                     </Button>
                 </div>
             </div>
@@ -254,7 +261,7 @@ const insertScore = (project: Project) => {
                                 </div>
                             </TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Nota</TableHead>
+                            <TableHead class="text-center">NMA</TableHead>
                             <TableHead class="text-center whitespace-nowrap"
                                 >Nota da prova</TableHead
                             >
@@ -303,22 +310,46 @@ const insertScore = (project: Project) => {
                                 >
                                     {{ project.review_score_label }}
                                 </Badge>
+                                <Dot v-else class="mx-auto h-4 w-4" />
                             </TableCell>
                             <TableCell class="text-center">
-                                <Badge
-                                    v-if="project.written_exam_score"
-                                    variant="secondary"
-                                    @click="insertScore(project)"
+                                <div
+                                    class="flex flex-row items-center justify-center"
                                 >
-                                    {{ project.written_exam_score_label }}
-                                </Badge>
-                                <Button
-                                    v-else
-                                    variant="default"
-                                    @click="insertScore(project)"
-                                >
-                                    Incluir
-                                </Button>
+                                    <Badge
+                                        v-if="
+                                            project.written_exam_score !== null
+                                        "
+                                        variant="secondary"
+                                        @click="insertScore(project)"
+                                    >
+                                        {{ project.written_exam_score_label }}
+                                    </Badge>
+                                    <Button
+                                        v-else
+                                        variant="default"
+                                        @click="insertScore(project)"
+                                    >
+                                        Incluir
+                                    </Button>
+                                    <Badge
+                                        v-if="
+                                            project.written_exam_score !== null
+                                        "
+                                        class="ml-2"
+                                        :class="
+                                            project.written_exam_score_passes
+                                                ? 'bg-green-600 text-white'
+                                                : 'bg-red-600 text-white'
+                                        "
+                                    >
+                                        {{
+                                            project.written_exam_score_passes
+                                                ? 'Aprovado'
+                                                : 'Reprovado'
+                                        }}
+                                    </Badge>
+                                </div>
                             </TableCell>
                             <TableCell class="text-right">
                                 <DropdownMenu>
@@ -365,4 +396,29 @@ const insertScore = (project: Project) => {
         :selection-id="selection.id"
         :project="selectedProjectForScore"
     />
+
+    <Dialog v-model:open="isConfirmingAction">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{{ confirmationData.title }}</DialogTitle>
+                <DialogDescription>
+                    {{ confirmationData.description }}
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="isConfirmingAction = false">
+                    Cancelar
+                </Button>
+                <Button
+                    :variant="confirmationData.variant"
+                    @click="
+                        confirmationData.onConfirm();
+                        isConfirmingAction = false;
+                    "
+                >
+                    {{ confirmationData.confirmButtonText }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

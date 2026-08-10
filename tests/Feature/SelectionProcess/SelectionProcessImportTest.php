@@ -30,6 +30,7 @@ test('it can import projects through the controller', function () {
     $response = $this->actingAs($user)
         ->post(route('selection.import', ['selection' => $selectionProcess->id]), [
             'file' => $file,
+            'modality' => 'both',
         ]);
     $response->assertRedirect(route('selection.show', ['selection' => $selectionProcess->id]));
 
@@ -45,6 +46,46 @@ test('it can import projects through the controller', function () {
     expect($project->content['documents'])->not->toBeEmpty();
 });
 
+test('it filters projects by modality and does not duplicate external registrations', function () {
+    Permission::create(['name' => 'projects.import', 'guard_name' => 'web']);
+    Role::create(['name' => 'reviewer', 'guard_name' => 'web']);
+
+    $user = User::factory()->create();
+    $user->givePermissionTo('projects.import');
+    $selectionProcess = SelectionProcess::factory()->create();
+    $filePath = base_path('tests/Fixtures/projects_import_template.xlsx');
+
+    $response = $this->actingAs($user)->post(
+        route('selection.import', ['selection' => $selectionProcess->id]),
+        [
+            'file' => new UploadedFile($filePath, 'projects_import_template.xlsx', null, null, true),
+            'modality' => 'doctorate',
+        ],
+    );
+
+    $response->assertRedirect(route('selection.show', ['selection' => $selectionProcess->id]));
+    expect($selectionProcess->projects()->where('modality', 'doctorate')->count())->toBe(83)
+        ->and($selectionProcess->projects()->where('modality', 'master')->count())->toBe(0);
+
+    $this->actingAs($user)->post(
+        route('selection.import', ['selection' => $selectionProcess->id]),
+        [
+            'file' => new UploadedFile($filePath, 'projects_import_template.xlsx', null, null, true),
+            'modality' => 'both',
+        ],
+    );
+
+    $this->actingAs($user)->post(
+        route('selection.import', ['selection' => $selectionProcess->id]),
+        [
+            'file' => new UploadedFile($filePath, 'projects_import_template.xlsx', null, null, true),
+            'modality' => 'both',
+        ],
+    );
+
+    expect($selectionProcess->projects()->count())->toBe(266);
+});
+
 test('it prevents import without permission', function () {
     $user = User::factory()->create();
     $selectionProcess = SelectionProcess::factory()->create();
@@ -54,6 +95,7 @@ test('it prevents import without permission', function () {
     $response = $this->actingAs($user)
         ->post(route('selection.import', ['selection' => $selectionProcess->id]), [
             'file' => $file,
+            'modality' => 'both',
         ]);
 
     $response->assertForbidden();
@@ -88,6 +130,7 @@ test('it lists and imports a ZIP from the inbox', function () {
     $response = $this->actingAs($user)
         ->post(route('selection.import', ['selection' => $selectionProcess->id]), [
             'inbox_file' => 'projects.zip',
+            'modality' => 'both',
         ]);
 
     $response->assertRedirect(route('selection.show', ['selection' => $selectionProcess->id]));

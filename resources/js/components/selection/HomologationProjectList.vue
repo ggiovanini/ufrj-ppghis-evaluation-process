@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import {
     Asterisk,
     Check,
     CheckCircle2,
+    FilePlus2,
     FileSpreadsheet,
     MoreHorizontal,
     Search,
@@ -196,6 +197,18 @@ const confirmFinalize = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            <DropdownMenuItem as-child>
+                                <Link
+                                    :href="
+                                        selectionRoutes.prepare(
+                                            props.selection.id,
+                                        ).url
+                                    "
+                                >
+                                    <FilePlus2 class="mr-2 h-4 w-4" />
+                                    Importar mais projetos
+                                </Link>
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                                 @click="requestFinalize('approve-all')"
                             >

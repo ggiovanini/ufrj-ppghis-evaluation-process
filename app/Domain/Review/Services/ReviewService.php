@@ -7,6 +7,7 @@ use App\Domain\Projects\Types\ProjectStage;
 use App\Domain\Review\Notifications\ReviewAssignmentsNotification;
 use App\Domain\Review\Types\ReviewScore;
 use App\Domain\Review\Types\ReviewStatus;
+use App\Domain\SelectionProcess\Exceptions\ProjectsAreNotInComplianceException;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
 use App\Models\ReviewAssignment;
@@ -146,6 +147,39 @@ class ReviewService
             $projectService->calculeReviewStepScore();
             $projectService->startCommitteeReview();
             $projectService->startWrittenExam();
+        }
+    }
+
+    public function finalize(?SelectionProcess $selection = null): void
+    {
+        if ($selection) {
+            $this->selectionProcess = $selection;
+        }
+
+        $pendingReviews = $this->selectionProcess->projects()->whereHas('reviewAssignments.review', function ($query) {
+            $query->where('status', '!=', ReviewStatus::SUBMITTED);
+        })->exists();
+
+        if ($pendingReviews) {
+            throw new ProjectsAreNotInComplianceException(
+                'Ainda existem avaliações pendentes.'
+            );
+        }
+
+        $this->selectionProcess->update([
+            'phase' => SelectionProcessPhases::WRITTEN_EXAM,
+        ]);
+
+        $projects = $this->selectionProcess->projects()
+            ->where('stage', ProjectStage::WRITTEN_EXAM)->get();
+
+        foreach ($projects as $project) {
+            $project->writtenExam()->updateOrCreate([], [
+                'score' => null,
+                'passed' => false,
+                'user_id' => auth()->id(),
+                'recorded_at' => null,
+            ]);
         }
     }
 }

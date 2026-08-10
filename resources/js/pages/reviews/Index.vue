@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Head, setLayoutProps } from '@inertiajs/vue3';
+import { Head, setLayoutProps, usePage } from '@inertiajs/vue3';
 import { ClipboardCheck } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import ReviewProjectList from '@/components/reviews/ReviewProjectList.vue';
-import SelectionStats from '@/components/selection/SelectionStats.vue';
 import { dashboard } from '@/routes';
+import { authCan } from '@/types';
 import type { DataFilters, DataPagination, Resource } from '@/types/pagination';
 import type { Project } from '@/types/projects';
 import type {
@@ -20,6 +20,9 @@ defineProps<{
     stats: SelectionProcessStats;
     filters?: DataFilters;
 }>();
+
+const page = usePage();
+const isCommittee = authCan(page.props.auth, 'committee.evaluate');
 
 setLayoutProps({
     breadcrumbs: [
@@ -38,11 +41,13 @@ setLayoutProps({
 <template>
     <Head :title="`${selection.data.name}: Avaliar`" />
 
-    <SelectionStats :stats="stats" :phase="selection.data.phase" />
-
     <Heading
         title="Avaliar projetos"
-        description="Abaixo estão listados os projetos que foram atribuídos a você para avaliação"
+        :description="
+            isCommittee
+                ? 'Abaixo estão listados os projetos da modalidade da sua banca para avaliação'
+                : 'Abaixo estão listados os projetos que foram atribuídos a você para avaliação'
+        "
         :icon="ClipboardCheck"
         class="mt-6"
     />
@@ -51,5 +56,6 @@ setLayoutProps({
         :selection="selection.data"
         :projects="projects"
         :filters="filters"
+        :mode="isCommittee ? 'committee' : 'review'"
     />
 </template>

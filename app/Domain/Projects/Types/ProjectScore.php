@@ -2,15 +2,14 @@
 
 namespace App\Domain\Projects\Types;
 
-use Illuminate\Support\Str;
-
 class ProjectScore
 {
     protected int $value;
 
     public function __construct(string $value)
     {
-        $this->value = (int) Str::limit(Str::replace('.', '', $value.'000'), 3, '');
+        $normalizedValue = str_replace(',', '.', trim($value));
+        $this->value = (int) round((float) $normalizedValue * 100);
     }
 
     public function __toString(): string
@@ -25,14 +24,14 @@ class ProjectScore
 
     public function format(): string
     {
-        $value = (string) $this->value;
-        $value = $value.'000';
+        $integerPart = intdiv($this->value, 100);
+        $decimalPart = str_pad((string) ($this->value % 100), 2, '0', STR_PAD_LEFT);
 
-        return "$value[0],$value[1]$value[2]";
+        return "$integerPart,$decimalPart";
     }
 
     public static function make(?int $value): self
     {
-        return new self((string) $value ?? 0);
+        return new self(number_format(($value ?? 0) / 100, 2, '.', ''));
     }
 }

@@ -11,7 +11,11 @@ use App\Domain\Projects\Types\ProjectStage;
 use App\Domain\Review\Services\ReviewService;
 use App\Domain\Review\Types\ReviewStatus;
 use App\Domain\SelectionProcess\Exceptions\ProjectsAreNotInComplianceException;
+use App\Domain\SelectionProcess\Services\CommitteeReviewService;
+use App\Domain\SelectionProcess\Services\HomologationService;
+use App\Domain\SelectionProcess\Services\ResultService;
 use App\Domain\SelectionProcess\Services\ReviewAssigmentService;
+use App\Domain\SelectionProcess\Services\WrittenExamService;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Projects\ProjectsImportRequest;
@@ -87,8 +91,14 @@ class SelectionProcessController extends Controller
                 ->whereNot('stage', ProjectStage::REJECTED);
         }
 
+        if ($selection->phase === SelectionProcessPhases::COMMITTEE) {
+            $projects = $projects
+                ->whereNotNull('review_score')
+                ->whereNot('stage', ProjectStage::REJECTED);
+        }
+
         $projects = $projects
-            ->with(['reviewAssignments.user'])
+            ->with(['reviewAssignments.user', 'writtenExam', 'committeeEvaluation', 'finalResults'])
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('candidate_name', 'like', "%{$search}%")
@@ -168,9 +178,16 @@ class SelectionProcessController extends Controller
 
         $selection->projects()
             ->where('stage', ProjectStage::IMPORTED)
+            ->where('homologation_status', ProjectHomologationStatus::APPROVED)
             ->update([
                 'stage' => ProjectStage::HOMOLOGATED,
             ]);
+
+        $selection->projects()
+            ->where('stage', ProjectStage::IMPORTED)
+            ->where('homologation_status', ProjectHomologationStatus::REJECTED)
+            ->get()
+            ->each(fn (Project $project) => $project->reject());
 
         return $this->finalize($selection);
     }
@@ -193,6 +210,7 @@ class SelectionProcessController extends Controller
 
     public function import(ProjectsImportRequest $request, SelectionProcess $selection): RedirectResponse
     {
+        $validated = $request->validated();
         $archivePath = null;
         $archiveService = null;
         $filesIndex = null;
@@ -213,6 +231,7 @@ class SelectionProcessController extends Controller
             $selection,
             new Project,
             $filesIndex,
+            $validated['modality'] === 'both' ? null : ProjectModality::from($validated['modality']),
         );
         $createdCount = $importProjectsService->import($projects);
 
@@ -246,31 +265,14 @@ class SelectionProcessController extends Controller
 
         try {
             if ($selection->phase === SelectionProcessPhases::HOMOLOGATION) {
-                $pendingProjects = $selection->projects()
-                    ->where('homologation_status', ProjectHomologationStatus::PENDING)
-                    ->exists();
 
-                if ($pendingProjects) {
-                    throw new ProjectsAreNotInComplianceException(
-                        'Todos os projetos precisam ser aprovados ou desaprovados antes de avançar.'
-                    );
-                }
-
-                if (! $selection->projects()->where('homologation_status', ProjectHomologationStatus::APPROVED)->exists()) {
-                    throw new ProjectsAreNotInComplianceException(
-                        'É necessário aprovar pelo menos um projeto para avançar.'
-                    );
-                }
-
-                $selection->update(['phase' => SelectionProcessPhases::DISTRIBUTION]);
+                $homologationService = new HomologationService;
+                $homologationService->finalize($selection);
 
                 return to_route('selection.show', $selection);
             }
 
-            if (in_array($selection->phase, [
-                SelectionProcessPhases::IMPORT,
-                SelectionProcessPhases::DISTRIBUTION,
-            ], true)) {
+            if ($selection->phase === SelectionProcessPhases::DISTRIBUTION) {
                 $approvedProjects = $selection->projects()
                     ->where('homologation_status', ProjectHomologationStatus::APPROVED)
                     ->get();
@@ -284,28 +286,35 @@ class SelectionProcessController extends Controller
                 $reviewService->createForSelectionProcess();
                 $reviewService->notifyReviewers();
 
-                $selection->update([
-                    'phase' => SelectionProcessPhases::REVIEW,
-                ]);
-
                 return to_route('selection.show', $selection);
             }
 
             if ($selection->phase === SelectionProcessPhases::REVIEW) {
-                // Check if all reviews are submitted
-                $pendingReviews = $selection->projects()->whereHas('reviewAssignments.review', function ($query) {
-                    $query->where('status', '!=', ReviewStatus::SUBMITTED);
-                })->exists();
 
-                if ($pendingReviews) {
-                    throw new ProjectsAreNotInComplianceException(
-                        'Ainda existem avaliações pendentes.'
-                    );
-                }
+                $reviewService = new ReviewService($selection);
+                $reviewService->finalize();
 
-                $selection->update([
-                    'phase' => SelectionProcessPhases::WRITTEN_EXAM,
-                ]);
+                return to_route('selection.show', $selection);
+            }
+
+            if ($selection->phase === SelectionProcessPhases::WRITTEN_EXAM) {
+
+                $writtenExamService = new WrittenExamService(new CommitteeReviewService);
+                $writtenExamService->finalize($selection);
+
+                return to_route('selection.show', $selection);
+            }
+
+            if ($selection->phase === SelectionProcessPhases::COMMITTEE) {
+
+                $committeeService = new CommitteeReviewService;
+                $committeeService->finalize($selection);
+
+                return to_route('selection.show', $selection);
+            }
+
+            if ($selection->phase === SelectionProcessPhases::RESULTS) {
+                (new ResultService)->finalize($selection);
 
                 return to_route('selection.show', $selection);
             }
@@ -313,9 +322,20 @@ class SelectionProcessController extends Controller
             throw new ProjectsAreNotInComplianceException(
                 'Essa alteração não é permitida no momento.'
             );
+
         } catch (ProjectsAreNotInComplianceException $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+    public function recalculateResults(SelectionProcess $selection): RedirectResponse
+    {
+        Gate::authorize('projects.manage');
+        abort_unless($selection->phase === SelectionProcessPhases::RESULTS, 409);
+
+        (new ResultService)->recalculateAll($selection);
+
+        return back();
     }
 
     public function returnToHomologation(SelectionProcess $selection): RedirectResponse

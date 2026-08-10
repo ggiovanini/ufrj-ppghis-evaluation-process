@@ -59,5 +59,6 @@ test('it handles non-integer results and updates stage to rejected if score is l
 
     $project->refresh();
     expect($project->review_score)->toBe(ReviewScore::DISAPPROVED);
-    expect($project->stage)->toBe(ProjectStage::REJECTED);
+    expect($project->stage)->toBe(ProjectStage::REJECTED)
+        ->and($project->rejected_on_stage)->toBe(ProjectStage::IMPORTED);
 });

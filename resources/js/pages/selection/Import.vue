@@ -24,6 +24,7 @@ const props = defineProps<{
 const form = useForm({
     file: null as File | null,
     inbox_file: '',
+    modality: 'both',
 });
 
 const submit = () => {
@@ -92,6 +93,22 @@ setLayoutProps({
                 </CardHeader>
                 <CardContent>
                     <form @submit.prevent="submit" class="space-y-4">
+                        <div class="grid w-full items-center gap-1.5">
+                            <Label for="modality">Modalidade dos projetos</Label>
+                            <select
+                                id="modality"
+                                v-model="form.modality"
+                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                            >
+                                <option value="both">Mestrado e doutorado</option>
+                                <option value="master">Apenas mestrado</option>
+                                <option value="doctorate">Apenas doutorado</option>
+                            </select>
+                            <div v-if="form.errors.modality" class="text-sm text-destructive">
+                                {{ form.errors.modality }}
+                            </div>
+                        </div>
+
                         <div class="grid w-full items-center gap-1.5">
                             <Label for="inbox_file">ZIP disponível no servidor</Label>
                             <select

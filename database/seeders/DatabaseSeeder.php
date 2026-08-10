@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UsersSeeder::class,
             ReviewSeeder::class,
+            SelectionProcessSeeder::class,
         ]);
     }
 }

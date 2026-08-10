@@ -31,6 +31,47 @@ const form = useForm({
     written_exam_score: '',
 });
 
+const sanitizeScore = (value: string): string => {
+    if (value.trim() === '') {
+        return '';
+    }
+
+    const digits = value.replace(/\D/g, '');
+
+    if (digits === '') {
+        return '';
+    }
+
+    const scoreInCents = Math.min(Number(digits), 1000);
+    const limitedDigits = String(scoreInCents);
+
+    if (limitedDigits.length === 1) {
+        return limitedDigits;
+    }
+
+    if (limitedDigits.length === 2) {
+        return `${limitedDigits[0]},${limitedDigits[1]}`;
+    }
+
+    return `${limitedDigits.slice(0, -2)},${limitedDigits.slice(-2)}`;
+};
+
+const normalizeScore = (): void => {
+    const sanitizedScore = sanitizeScore(form.written_exam_score);
+
+    if (sanitizedScore === '') {
+        return;
+    }
+
+    form.written_exam_score = sanitizedScore.includes(',')
+        ? sanitizedScore.padEnd(4, '0')
+        : `${sanitizedScore},00`;
+};
+
+const handleScoreInput = (value: string | number): void => {
+    form.written_exam_score = sanitizeScore(String(value));
+};
+
 watch(
     () => props.open,
     (isOpen) => {
@@ -85,8 +126,12 @@ const submit = () => {
                         <Label for="score">Nota (0,00 a 10,00)</Label>
                         <Input
                             id="score"
-                            v-model="form.written_exam_score"
+                            :model-value="form.written_exam_score"
+                            inputmode="decimal"
+                            maxlength="5"
                             placeholder="Ex: 7,50"
+                            @blur="normalizeScore"
+                            @update:model-value="handleScoreInput"
                             autofocus
                         />
                         <div

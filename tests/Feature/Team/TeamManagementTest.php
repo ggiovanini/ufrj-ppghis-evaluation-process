@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Shared\Types\UserRoles;
+use App\Models\Project;
 use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,6 +101,8 @@ test('team member details can be viewed', function () {
     $user->givePermissionTo('users.manage');
 
     $member = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole(UserRoles::REVIEWER->value);
 
     $this->actingAs($user)
         ->get(route('team.show', $member))
@@ -111,6 +115,58 @@ test('team member details can be viewed', function () {
             ->has('stats.written_exams')
             ->has('stats.committee_evaluations')
             ->has('projects.data')
+            ->has('reviewers', 1)
+            ->where('reviewers.0.id', $reviewer->id)
+        );
+});
+
+test('master committee members only see master projects in their details', function () {
+    $selection = SelectionProcess::factory()->create();
+    $user = User::factory()->create([
+        'current_selection_process_id' => $selection->id,
+    ]);
+    $user->givePermissionTo('users.manage');
+
+    $member = User::factory()->create();
+    $member->assignRole(UserRoles::MASTER_COMMITTEE->value);
+    $masterProject = Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'modality' => ProjectModality::MASTER,
+    ]);
+    Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'modality' => ProjectModality::DOCTORATE,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('team.show', $member))
+        ->assertInertia(fn ($page) => $page
+            ->where('projects.data', fn ($projects): bool => $projects->pluck('id')->sort()->values()->all() === [$masterProject->id])
+        );
+});
+
+test('doctorate committee members only see doctorate projects in their details', function () {
+    $selection = SelectionProcess::factory()->create();
+    $user = User::factory()->create([
+        'current_selection_process_id' => $selection->id,
+    ]);
+    $user->givePermissionTo('users.manage');
+
+    $member = User::factory()->create();
+    $member->assignRole(UserRoles::DOCTORATE_COMMITTEE->value);
+    Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'modality' => ProjectModality::MASTER,
+    ]);
+    $doctorateProject = Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'modality' => ProjectModality::DOCTORATE,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('team.show', $member))
+        ->assertInertia(fn ($page) => $page
+            ->where('projects.data', fn ($projects): bool => $projects->pluck('id')->sort()->values()->all() === [$doctorateProject->id])
         );
 });
 

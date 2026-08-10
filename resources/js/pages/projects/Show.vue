@@ -16,6 +16,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import ProjectCommittee from '@/pages/projects/partials/ProjectCommittee.vue';
+import ProjectDataResume from '@/pages/projects/partials/ProjectDataResume.vue';
 import ProjectReviewers from '@/pages/projects/partials/ProjectReviewers.vue';
 import ProjectWrittenExam from '@/pages/projects/partials/ProjectWrittenExam.vue';
 import { dashboard } from '@/routes';
@@ -27,7 +29,6 @@ import type { SelectionProcess } from '@/types/selection-process';
 import type { SelectionProcessPhaseObject } from '@/types/selection-process';
 import ProjectData from './partials/ProjectData.vue';
 import ProjectProgress from './partials/ProjectProgress.vue';
-import ProjectDataResume from '@/pages/projects/partials/ProjectDataResume.vue';
 
 const props = defineProps<{
     selection: {
@@ -258,10 +259,7 @@ setLayoutProps({
                                 v-if="authCan(auth, 'projects.manage')"
                                 :project="project"
                             />
-                            <ProjectDataResume
-                                v-else
-                                :project="project"
-                            />
+                            <ProjectDataResume v-else :project="project" />
                         </div>
                     </CardContent>
                 </Card>
@@ -340,6 +338,45 @@ setLayoutProps({
                     :project="project"
                     :selection-id="selection.data.id"
                 />
+
+                <ProjectCommittee
+                    :project="project"
+                    :selection-id="selection.data.id"
+                    :selection-phase="selection.data.phase"
+                />
+
+                <Card
+                    v-if="
+                        ['RESULTS', 'FINISHED'].includes(selection.data.phase)
+                    "
+                >
+                    <CardHeader class="pb-2">
+                        <CardTitle class="text-base">Resultado final</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm">Nota final</span>
+                            <Badge variant="secondary" class="text-lg">
+                                {{ project.final_score_label || '---' }}
+                            </Badge>
+                        </div>
+                        <Badge
+                            v-if="project.final_score !== null"
+                            class="mt-3"
+                            :class="
+                                project.final_score_passes
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-red-600 text-white'
+                            "
+                        >
+                            {{
+                                project.final_score_passes
+                                    ? 'Aprovado'
+                                    : 'Reprovado'
+                            }}
+                        </Badge>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     </div>

@@ -32,6 +32,7 @@ const props = defineProps<{
     selection: SelectionProcess;
     projects: DataPagination<Project>;
     filters?: DataFilters;
+    mode?: 'review' | 'committee';
 }>();
 
 const search = ref(props.filters?.search || '');
@@ -197,7 +198,23 @@ const clearSearch = () => {
                                 </Badge>
                             </TableCell>
                             <TableCell>
+                                <template v-if="mode === 'committee'">
+                                    <Badge
+                                        :class="
+                                            project.committee_score !== null
+                                                ? 'bg-green-500'
+                                                : 'bg-muted-foreground'
+                                        "
+                                    >
+                                        {{
+                                            project.committee_score !== null
+                                                ? 'Nota registrada'
+                                                : 'Pendente'
+                                        }}
+                                    </Badge>
+                                </template>
                                 <template
+                                    v-else
                                     v-for="assignment in project.review_assignments"
                                     :key="assignment.id"
                                 >

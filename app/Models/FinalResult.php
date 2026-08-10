@@ -14,6 +14,7 @@ class FinalResult extends Model
         'written_exam_score',
         'committee_score',
         'final_score',
+        'passed',
         'status',
         'published_at',
     ];
@@ -23,6 +24,7 @@ class FinalResult extends Model
         'written_exam_score' => 'integer',
         'committee_score' => 'integer',
         'final_score' => 'integer',
+        'passed' => 'boolean',
         'published_at' => 'datetime',
         'status' => FinalStatus::class,
     ];

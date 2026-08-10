@@ -14,6 +14,6 @@ class ProjectsExcelImport implements SkipsEmptyRows, ToCollection, WithColumnLim
 
     public function endColumn(): string
     {
-        return 'BD';
+        return 'BB';
     }
 }

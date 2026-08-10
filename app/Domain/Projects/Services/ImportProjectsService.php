@@ -21,6 +21,7 @@ class ImportProjectsService
         public SelectionProcess $selectionProcess,
         public Project $entity,
         public ?Collection $filesIndex = null,
+        public ?ProjectModality $modality = null,
     ) {}
 
     public function import(Collection $data): ?int
@@ -54,24 +55,48 @@ class ImportProjectsService
         }
         $firstKeys = array_keys($firstItem->toArray());
 
-        if (
-            Str::snake($firstKeys[0]) !== 'id_da_resposta' ||
-            Str::snake($firstKeys[54]) !== 'concordancia_estou_de_acordo_com_as_regras_de_selecao_confomes_definidas_pelo_edital_pertinente_do_programa_de_pos_graduacao_em_historia_social_da_ufrj'
-        ) {
+        if (Str::snake($firstKeys[0]) !== 'id_da_resposta') {
             throw new ValidateImportException(
                 'A planilha parece não conter os dados esperados.'
+            );
+        }
+
+        if (! in_array('deseja_concorrer_sob_o_sistema_de_acoes_afirmativas', $firstKeys)) {
+            throw new ValidateImportException(
+                'A planilha parece não conter a coluna de deseja_concorrer_sob_o_sistema_de_acoes_afirmativas.'
             );
         }
     }
 
     private function perform(): void
     {
+        $existingRegisterIds = $this->entity->newQuery()
+            ->withTrashed()
+            ->where('selection_process_id', $this->selectionProcess->id)
+            ->pluck('register_id')
+            ->map(fn (string $registerId): string => $this->normalizeIdentifier($registerId))
+            ->flip();
+
         foreach ($this->data as $projectData) {
-            $this->create($projectData->toArray());
+            $projectData = $projectData->toArray();
+            $registerId = $this->normalizeIdentifier((string) $projectData['id_da_resposta']);
+
+            if ($existingRegisterIds->has($registerId)) {
+                continue;
+            }
+
+            $projectModality = $this->projectModality($projectData);
+
+            if ($this->modality !== null && $projectModality !== $this->modality) {
+                continue;
+            }
+
+            $this->create($projectData, $projectModality);
+            $existingRegisterIds->put($registerId, true);
         }
     }
 
-    private function create(array $projectData): void
+    private function create(array $projectData, ProjectModality $modality): void
     {
         $project = new $this->entity;
         $project->fill([
@@ -80,9 +105,7 @@ class ImportProjectsService
             'title' => Str::trim($projectData['titulo_do_projeto']),
             'description' => Str::trim($projectData['resumo'] ?? null),
             'indication' => Str::trim($projectData['indicacao_de_especialista_do_corpo_docente_do_ppghis_para_avaliacao_do_projeto_de_pesquisa'] ?? null),
-            'modality' => Str::trim(Str::lower($projectData['curso'])) === 'mestrado'
-                ? ProjectModality::MASTER->value
-                : ProjectModality::DOCTORATE->value,
+            'modality' => $modality->value,
             'original_content' => $projectData,
             'content' => null,
             'homologation_status' => ProjectHomologationStatus::PENDING->value,
@@ -93,6 +116,13 @@ class ImportProjectsService
         $this->handleOriginalContent($project);
 
         $this->count++;
+    }
+
+    private function projectModality(array $projectData): ProjectModality
+    {
+        return Str::trim(Str::lower($projectData['curso'])) === 'mestrado'
+            ? ProjectModality::MASTER
+            : ProjectModality::DOCTORATE;
     }
 
     private function handleOriginalContent(Project $project): void

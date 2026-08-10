@@ -93,8 +93,7 @@ const isConfirming = ref(false);
 const confirmStatus = ref<'draft' | 'submitted'>('draft');
 
 const isValidForSubmission = computed(() => {
-    const hasScore =
-        form.score !== 0 && form.score !== null;
+    const hasScore = form.score !== 0 && form.score !== null;
     const allRequiredFieldsFilled = reviewFormSchema.every((field: Field) => {
         if (!field.required) {
             return true;
@@ -108,8 +107,9 @@ const isValidForSubmission = computed(() => {
             String(answer).trim() !== ''
         );
     });
+    const hasComment = form.comments.length > 40;
 
-    return hasScore && allRequiredFieldsFilled;
+    return hasScore && allRequiredFieldsFilled && hasComment;
 });
 
 const confirmMessages = {
@@ -230,25 +230,30 @@ const executeSubmit = () => {
                             <Label class="text-xl" for="score"
                                 >Recomendação</Label
                             >
-                            <Select v-model="form.score">
-                                <SelectTrigger id="score">
-                                    <SelectValue
-                                        placeholder="Escolha sua recomendação"
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="option in reviewScoreOptions"
-                                        :key="option.value"
-                                        :value="option.value"
-                                    >
-                                        {{ option.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <p class="text-sm text-muted">
-                                Escolha a recomendação que seja mais apropriada para o projeto levando em consideração os pontos fortes e frágeis do projeto.
-                            </p>
+                            <div class="flex w-full flex-row gap-4">
+                                <Select v-model="form.score">
+                                    <SelectTrigger id="score">
+                                        <SelectValue
+                                            placeholder="Escolha sua recomendação"
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="option in reviewScoreOptions"
+                                            :key="option.value"
+                                            :value="option.value"
+                                        >
+                                            {{ option.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p class="text-sm">
+                                    Escolha a recomendação que seja mais
+                                    apropriada para o projeto levando em
+                                    consideração os pontos fortes e frágeis do
+                                    projeto.
+                                </p>
+                            </div>
                             <div
                                 v-if="form.errors.score"
                                 class="text-xs text-destructive"
@@ -257,10 +262,11 @@ const executeSubmit = () => {
                             </div>
                         </div>
 
-                        <div class="grid gap-2 md:col-span-3">
-                            <Label for="comments"
-                                >Justificativa do parecer</Label
-                            >
+                        <div class="mt-2 grid gap-2 md:col-span-3">
+                            <Label for="comments">
+                                Justificativa do parecer
+                                <span class="text-destructive">*</span>
+                            </Label>
                             <textarea
                                 id="comments"
                                 v-model="form.comments"

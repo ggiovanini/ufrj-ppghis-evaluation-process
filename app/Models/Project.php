@@ -28,9 +28,11 @@ class Project extends Model
         'homologation_status',
         'homologation_reason',
         'stage',
+        'rejected_on_stage',
         'review_score',
         'written_exam_score',
         'committee_score',
+        'final_score',
     ];
 
     protected $casts = [
@@ -39,9 +41,11 @@ class Project extends Model
         'content' => 'array',
         'homologation_status' => ProjectHomologationStatus::class,
         'stage' => ProjectStage::class,
+        'rejected_on_stage' => ProjectStage::class,
         'review_score' => 'int',
         'written_exam_score' => 'int',
         'committee_score' => 'int',
+        'final_score' => 'int',
     ];
 
     public function selectionProcess(): BelongsTo
@@ -67,5 +71,15 @@ class Project extends Model
     public function finalResults(): HasOne
     {
         return $this->hasOne(FinalResult::class);
+    }
+
+    public function reject(): void
+    {
+        if ($this->stage !== ProjectStage::REJECTED) {
+            $this->rejected_on_stage = $this->stage;
+        }
+
+        $this->stage = ProjectStage::REJECTED;
+        $this->save();
     }
 }

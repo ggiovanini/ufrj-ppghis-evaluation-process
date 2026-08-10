@@ -56,9 +56,7 @@ class ProjectService
         ]);
         $this->project->refresh();
         if ($this->project->review_score < $this->minScoreRule()) {
-            $this->project->update([
-                'stage' => ProjectStage::REJECTED,
-            ]);
+            $this->project->reject();
         }
     }
 
@@ -110,10 +108,15 @@ class ProjectService
         ]);
     }
 
-    protected function minScoreRule(): int
+    public function minScoreRule(): int
     {
-        $isCoatScore = $this->project->original_content['deseja_concorrer_sob_o_sistema_de_acoes_afirmativas'] ?? 'Não';
+        $isCoatScore = $this->project?->original_content['deseja_concorrer_sob_o_sistema_de_acoes_afirmativas'] ?? 'Não';
 
-        return (strtolower($isCoatScore[0]) === 's') ? 600 : 700;
+        return (strtolower((string) $isCoatScore[0]) === 's') ? 600 : 700;
+    }
+
+    public function passesMinimumScore(?int $score): ?bool
+    {
+        return $score === null ? null : $score >= $this->minScoreRule();
     }
 }

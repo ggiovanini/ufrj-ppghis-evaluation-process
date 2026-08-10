@@ -10,6 +10,7 @@ class CommitteeEvaluation extends Model
     protected $fillable = [
         'project_id',
         'score',
+        'passed',
         'comments',
         'user_id',
         'submitted_at',
@@ -17,6 +18,7 @@ class CommitteeEvaluation extends Model
 
     protected $casts = [
         'score' => 'integer',
+        'passed' => 'boolean',
         'submitted_at' => 'datetime',
     ];
 

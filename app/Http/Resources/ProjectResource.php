@@ -21,6 +21,8 @@ class ProjectResource extends JsonResource
             'modality_label' => $this->modality->label(),
             'stage' => $this->stage,
             'stage_label' => $this->stage->label(),
+            'rejected_on_stage' => $this->rejected_on_stage,
+            'rejected_on_stage_label' => $this->rejected_on_stage?->label(),
             'indication' => $this->indication,
             'has_indication' => ! empty($this->indication),
             'original_content' => $this->original_content,
@@ -42,8 +44,13 @@ class ProjectResource extends JsonResource
             'review_score_label' => ProjectScore::make($this->review_score)->format(),
             'written_exam_score' => $this->written_exam_score,
             'written_exam_score_label' => ProjectScore::make($this->written_exam_score)->format(),
+            'written_exam_score_passes' => $this->whenLoaded('writtenExam', fn () => $this->writtenExam?->passed),
             'committee_score' => $this->committee_score,
             'committee_score_label' => ProjectScore::make($this->committee_score)->format(),
+            'committee_score_passes' => $this->whenLoaded('committeeEvaluation', fn () => $this->committeeEvaluation?->passed),
+            'final_score' => $this->final_score,
+            'final_score_label' => ProjectScore::make($this->final_score)->format(),
+            'final_score_passes' => $this->whenLoaded('finalResults', fn () => $this->finalResults?->passed),
         ];
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import {
     Search,
     X,
@@ -10,6 +10,10 @@ import {
     MoreHorizontal,
     Eye,
     CheckCircleIcon,
+    UserCog,
+    Trash2,
+    ArrowRight,
+    Dot,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { ref } from 'vue';
@@ -18,12 +22,27 @@ import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -33,9 +52,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import selectionRoutes from '@/routes/selection';
+import teamRoutes from '@/routes/team';
+import { authCan } from '@/types';
 import type { DataFilters, DataPagination } from '@/types/pagination';
 import type { Project } from '@/types/projects';
-import type { Reviewer } from '@/types/reviewer';
+import type { ReviewAssignment, Reviewer } from '@/types/reviewer';
 import type {
     SelectionProcessStats,
     SelectionProcess,
@@ -47,9 +68,62 @@ const props = defineProps<{
     reviewers: Reviewer[];
     filters?: DataFilters;
     stats: SelectionProcessStats;
+    userId?: number;
 }>();
 
+const page = usePage();
+const canReassign = authCan(page.props.auth, 'users.manage');
+const isReassignModalOpen = ref(false);
+const selectedProject = ref<Project | null>(null);
+const selectedAssignment = ref<ReviewAssignment | null>(null);
+const selectedReviewerId = ref<string | null>(null);
+const isRemoveModalOpen = ref(false);
+const projectToRemove = ref<Project | null>(null);
+const assignmentToRemove = ref<ReviewAssignment | null>(null);
+
 const search = ref(props.filters?.search || '');
+const selectedStatus = ref(props.filters?.status || 'all');
+const selectedModality = ref(props.filters?.modality || 'all');
+
+const statusOptions = [
+    { value: 'imported', label: 'Em homologação' },
+    { value: 'homologated', label: 'Em distribuição' },
+    { value: 'review', label: 'Em avaliação' },
+    { value: 'written_exam', label: 'Em aplicação de prova' },
+    { value: 'committee', label: 'Em avaliação do comitê' },
+    { value: 'finished', label: 'Aprovado' },
+    { value: 'rejected', label: 'Reprovado' },
+];
+
+const modalityOptions = [
+    { value: 'master', label: 'Mestrado' },
+    { value: 'doctorate', label: 'Doutorado' },
+];
+
+const updateFilter = (filter: 'status' | 'modality', value: unknown) => {
+    if (typeof value !== 'string') {
+        return;
+    }
+
+    if (filter === 'status') {
+        selectedStatus.value = value;
+    } else {
+        selectedModality.value = value;
+    }
+
+    router.get(
+        window.location.pathname,
+        {
+            ...props.filters,
+            [filter]: value === 'all' ? undefined : value,
+            page: undefined,
+        },
+        {
+            preserveState: true,
+            replace: true,
+        },
+    );
+};
 
 watchDebounced(
     search,
@@ -102,6 +176,85 @@ const navigateToShowProject = (projectId: number) => {
         }).url,
     );
 };
+
+const openReassignModal = (project: Project) => {
+    if (isProjectEvaluated(project)) {
+        return;
+    }
+
+    selectedProject.value = project;
+    selectedAssignment.value =
+        project.review_assignments.find(
+            (assignment) => assignment.user_id === props.userId,
+        ) ?? null;
+    selectedReviewerId.value = null;
+    isReassignModalOpen.value = true;
+};
+
+const isProjectEvaluated = (project: Project): boolean => {
+    return project.review_assignments.some(
+        (assignment) => assignment.review?.status === 'submitted',
+    );
+};
+
+const getCurrentAssignment = (project: Project): ReviewAssignment | null => {
+    return (
+        project.review_assignments.find(
+            (assignment) => assignment.user_id === props.userId,
+        ) ?? null
+    );
+};
+
+const canRemoveCurrentEvaluation = (project: Project): boolean => {
+    return getCurrentAssignment(project)?.review?.status === 'submitted';
+};
+
+const openRemoveModal = (project: Project) => {
+    if (!canRemoveCurrentEvaluation(project)) {
+        return;
+    }
+
+    projectToRemove.value = project;
+    assignmentToRemove.value = getCurrentAssignment(project);
+    isRemoveModalOpen.value = true;
+};
+
+const removeAssignment = () => {
+    if (!assignmentToRemove.value || props.userId === undefined) {
+        return;
+    }
+
+    router.delete(
+        teamRoutes.assignments.destroy({
+            user: props.userId,
+            assignment: assignmentToRemove.value.id,
+        }).url,
+        {
+            onSuccess: () => {
+                isRemoveModalOpen.value = false;
+            },
+        },
+    );
+};
+
+const reassignReviewer = () => {
+    if (!selectedAssignment.value || !selectedReviewerId.value) {
+        return;
+    }
+
+    router.post(
+        teamRoutes.assignments.reassign({
+            user: props.userId!,
+            assignment: selectedAssignment.value.id,
+        }).url,
+        { reviewer_id: selectedReviewerId.value },
+        {
+            onSuccess: () => {
+                isReassignModalOpen.value = false;
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -110,8 +263,8 @@ const navigateToShowProject = (projectId: number) => {
             class="relative flex w-full flex-col overflow-hidden rounded-xl border p-2"
         >
             <PlaceholderPattern class="z-0" />
-            <div class="z-10 mb-2 flex items-center justify-between gap-4 p-2">
-                <div class="relative w-full max-w-sm">
+            <div class="z-10 mb-2 flex flex-col gap-3 p-2 lg:flex-row lg:items-center">
+                <div class="relative w-full lg:max-w-sm">
                     <Search
                         class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                     />
@@ -128,6 +281,42 @@ const navigateToShowProject = (projectId: number) => {
                         <X class="h-4 w-4" />
                     </button>
                 </div>
+                <Select
+                    :model-value="selectedStatus"
+                    @update:model-value="(value) => updateFilter('status', value)"
+                >
+                    <SelectTrigger class="w-full lg:w-56">
+                        <SelectValue placeholder="Todos os status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        <SelectItem
+                            v-for="option in statusOptions"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select
+                    :model-value="selectedModality"
+                    @update:model-value="(value) => updateFilter('modality', value)"
+                >
+                    <SelectTrigger class="w-full lg:w-48">
+                        <SelectValue placeholder="Todas as modalidades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas as modalidades</SelectItem>
+                        <SelectItem
+                            v-for="option in modalityOptions"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <div
@@ -159,10 +348,27 @@ const navigateToShowProject = (projectId: number) => {
                                     />
                                 </div>
                             </TableHead>
-                            <TableHead class="text-center">Nota</TableHead>
-                            <TableHead class="text-center">Progresso</TableHead>
                             <TableHead class="text-center">Status</TableHead>
-                            <TableHead>Avaliadores</TableHead>
+                            <TableHead
+                                v-if="selection.phase === 'REVIEW'"
+                                class="text-center"
+                                >Progresso</TableHead
+                            >
+                            <TableHead v-if="selection.phase === 'REVIEW'"
+                                >Avaliadores</TableHead
+                            >
+                            <TableHead class="text-center whitespace-nowrap"
+                                >NMA</TableHead
+                            >
+                            <TableHead class="text-center whitespace-nowrap"
+                                >NP</TableHead
+                            >
+                            <TableHead class="text-center whitespace-nowrap"
+                                >NC</TableHead
+                            >
+                            <TableHead class="text-center whitespace-nowrap"
+                                >NF</TableHead
+                            >
                             <TableHead
                                 class="flex items-center justify-end pe-4"
                             >
@@ -190,15 +396,21 @@ const navigateToShowProject = (projectId: number) => {
                                     </Badge>
                                 </div>
                             </TableCell>
-                            <TableCell class="text-center">
+                            <TableCell class="pe-4 text-center">
                                 <Badge
-                                    v-if="project.review_score"
-                                    variant="secondary"
+                                    v-if="project.stage === 'rejected'"
+                                    class="bg-orange-300"
                                 >
-                                    {{ project.review_score_label }}
+                                    {{ project.stage_label }}: {{ project.rejected_on_stage_label }}
+                                </Badge>
+                                <Badge v-else>
+                                    {{ project.stage_label }}
                                 </Badge>
                             </TableCell>
-                            <TableCell class="text-center">
+                            <TableCell
+                                v-if="selection.phase === 'REVIEW'"
+                                class="text-center"
+                            >
                                 <div
                                     class="flex items-center justify-center gap-2"
                                 >
@@ -217,12 +429,7 @@ const navigateToShowProject = (projectId: number) => {
                                     </span>
                                 </div>
                             </TableCell>
-                            <TableCell class="pe-4 text-center">
-                                <Badge :class="project.stage === 'rejected' ? 'bg-orange-300' : ''">
-                                    {{ project.stage_label }}
-                                </Badge>
-                            </TableCell>
-                            <TableCell>
+                            <TableCell v-if="selection.phase === 'REVIEW'">
                                 <div class="flex flex-wrap gap-2">
                                     <Badge
                                         v-for="assignment in project.review_assignments"
@@ -256,6 +463,49 @@ const navigateToShowProject = (projectId: number) => {
                                     </Badge>
                                 </div>
                             </TableCell>
+                            <TableCell class="text-center">
+                                <Badge
+                                    v-if="project.review_score"
+                                    variant="secondary"
+                                >
+                                    {{ project.review_score_label }}
+                                </Badge>
+                                <Dot v-else class="mx-auto h-4 w-4" />
+                            </TableCell>
+                            <TableCell class="text-center">
+                                <Badge
+                                    v-if="
+                                        project.written_exam_score &&
+                                        project.modality === 'master'
+                                    "
+                                    variant="secondary"
+                                >
+                                    {{ project.written_exam_score_label }}
+                                </Badge>
+                                <Dot
+                                    v-else-if="project.modality === 'master'"
+                                    class="mx-auto h-4 w-4"
+                                />
+                                <ArrowRight v-else class="mx-auto h-4 w-4" />
+                            </TableCell>
+                            <TableCell class="text-center">
+                                <Badge
+                                    v-if="project.committee_score"
+                                    variant="secondary"
+                                >
+                                    {{ project.committee_score_label }}
+                                </Badge>
+                                <Dot v-else class="mx-auto h-4 w-4" />
+                            </TableCell>
+                            <TableCell class="text-center">
+                                <Badge
+                                    v-if="project.final_score"
+                                    variant="secondary"
+                                >
+                                    {{ project.final_score_label }}
+                                </Badge>
+                                <Dot v-else class="mx-auto h-4 w-4" />
+                            </TableCell>
                             <TableCell class="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
@@ -280,6 +530,43 @@ const navigateToShowProject = (projectId: number) => {
                                             <Eye class="mr-1 h-4 w-4" /> Ver
                                             Projeto
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            v-if="
+                                                canReassign &&
+                                                userId !== undefined &&
+                                                project.review_assignments.some(
+                                                    (assignment) =>
+                                                        assignment.user_id ===
+                                                        userId,
+                                                )
+                                            "
+                                            :disabled="
+                                                isProjectEvaluated(project)
+                                            "
+                                            @click="openReassignModal(project)"
+                                        >
+                                            <UserCog class="mr-1 h-4 w-4" />
+                                            Reatribuir
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            v-if="
+                                                canReassign &&
+                                                userId !== undefined &&
+                                                project.review_assignments.some(
+                                                    (assignment) =>
+                                                        assignment.user_id ===
+                                                        userId,
+                                                ) &&
+                                                canRemoveCurrentEvaluation(
+                                                    project,
+                                                )
+                                            "
+                                            class="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+                                            @click="openRemoveModal(project)"
+                                        >
+                                            <Trash2 class="mr-1 h-4 w-4" />
+                                            Remover avaliação
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </TableCell>
@@ -295,4 +582,69 @@ const navigateToShowProject = (projectId: number) => {
             <Pagination :meta="projects.meta" class="z-10" />
         </div>
     </div>
+
+    <Dialog v-model:open="isReassignModalOpen">
+        <DialogContent class="sm:max-w-106.25">
+            <DialogHeader>
+                <DialogTitle>Reatribuir avaliador</DialogTitle>
+                <DialogDescription>
+                    Escolha o novo avaliador para o projeto de
+                    <strong>{{ selectedProject?.candidate_name }}</strong
+                    >.
+                </DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-4 py-4">
+                <label class="text-sm font-medium">Novo avaliador</label>
+                <Select v-model="selectedReviewerId">
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione um avaliador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem
+                            v-for="reviewer in reviewers.filter(
+                                (reviewer) =>
+                                    reviewer.id !== selectedAssignment?.user_id,
+                            )"
+                            :key="reviewer.id"
+                            :value="reviewer.id.toString()"
+                        >
+                            {{ reviewer.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" @click="isReassignModalOpen = false">
+                    Cancelar
+                </Button>
+                <Button
+                    :disabled="!selectedReviewerId"
+                    @click="reassignReviewer"
+                >
+                    Confirmar troca
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="isRemoveModalOpen">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Remover avaliação</DialogTitle>
+                <DialogDescription>
+                    Tem certeza que deseja remover a avaliação de
+                    <strong>{{ projectToRemove?.candidate_name }}</strong
+                    >? Essa ação removerá a atribuição deste avaliador.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="isRemoveModalOpen = false">
+                    Cancelar
+                </Button>
+                <Button variant="destructive" @click="removeAssignment">
+                    Remover avaliação
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

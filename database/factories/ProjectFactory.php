@@ -30,6 +30,7 @@ class ProjectFactory extends Factory
             'review_score' => null,
             'written_exam_score' => null,
             'committee_score' => null,
+            'final_score' => null,
             'original_content' => [],
         ];
     }
