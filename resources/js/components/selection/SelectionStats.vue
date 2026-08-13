@@ -263,7 +263,9 @@ const props = defineProps<{
                     </div>
                     <div class="flex flex-col items-end">
                         <div class="flex flex-col items-end gap-0">
-                            <div class="text-2xl leading-none font-bold border-b-2 border-b-foreground">
+                            <div
+                                class="border-b-2 border-b-foreground text-2xl leading-none font-bold"
+                            >
                                 {{ stats.total_project_reviewed }}
                             </div>
                             <div class="text-1xl leading-none">

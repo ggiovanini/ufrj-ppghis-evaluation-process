@@ -32,16 +32,25 @@ function goBack() {
         <Button
             @click="goBack"
             class="cursor-pointer"
-            v-if="back" variant="ghost" size="icon-lg" as-child>
+            v-if="back"
+            variant="ghost"
+            size="icon-lg"
+            as-child
+        >
             <component :is="icon" class="h-9 w-9" />
         </Button>
-        <Button v-else-if="!back && url && icon" variant="ghost" size="icon-lg" as-child>
+        <Button
+            v-else-if="!back && url && icon"
+            variant="ghost"
+            size="icon-lg"
+            as-child
+        >
             <Link :href="url">
                 <component :is="icon" class="h-9 w-9" />
             </Link>
         </Button>
         <component v-else-if="icon" :is="icon" class="h-9 w-9" />
-        <div class="flex flex-col pe-20 items-start space-y-0.5">
+        <div class="flex flex-col items-start space-y-0.5 pe-20">
             <h2
                 :class="
                     variant === 'small'

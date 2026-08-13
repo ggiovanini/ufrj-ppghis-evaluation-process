@@ -50,8 +50,8 @@ test('it calculates preliminary written exam results using each project rule', f
 
     $stats = FrontIntegrationService::selectionProcessStats($selection);
 
-    expect($stats['written_exams'])->toBe(3)
+    expect($stats['written_exams'])->toBe(2)
         ->and($stats['written_examined'])->toBe(2)
-        ->and($stats['written_exam_preliminarily_passed'])->toBe(1)
-        ->and($stats['written_exam_preliminarily_failed'])->toBe(1);
+        ->and($stats['written_exam_passed'])->toBe(1)
+        ->and($stats['written_exam_failed'])->toBe(1);
 });

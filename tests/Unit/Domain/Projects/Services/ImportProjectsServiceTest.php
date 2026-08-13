@@ -3,14 +3,74 @@
 namespace Tests\Unit\Domain\Projects\Services;
 
 use App\Domain\Projects\Services\ImportProjectsService;
+use App\Domain\Projects\Services\PotentialDuplicateProjectService;
 use App\Models\Project;
 use App\Models\SelectionProcess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class ImportProjectsServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_it_groups_potential_duplicate_projects_by_name_or_normalized_title(): void
+    {
+        $selectionProcess = SelectionProcess::factory()->create();
+        $firstProject = Project::factory()->create([
+            'selection_process_id' => $selectionProcess->id,
+            'candidate_name' => 'Ana Maria da Silva',
+            'title' => 'História do Brasil: 1900',
+            'content' => ['documents' => [['name' => 'a.pdf']]],
+        ]);
+        $secondProject = Project::factory()->create([
+            'selection_process_id' => $selectionProcess->id,
+            'candidate_name' => 'ANA MARIA DA SILVA',
+            'title' => 'Outro título',
+            'content' => ['documents' => [['name' => 'a.pdf'], ['name' => 'b.pdf']]],
+        ]);
+        $thirdProject = Project::factory()->create([
+            'selection_process_id' => $selectionProcess->id,
+            'candidate_name' => 'Outro candidato',
+            'title' => 'Historia do Brasil 1900',
+            'content' => ['documents' => []],
+        ]);
+
+        $duplicates = (new PotentialDuplicateProjectService)->analyze(
+            $selectionProcess->projects()->get(),
+        );
+
+        expect($duplicates[$firstProject->id]['potential_duplicate'])->toBeTrue()
+            ->and($duplicates[$firstProject->id]['duplicate_group'])
+            ->toBe($duplicates[$secondProject->id]['duplicate_group'])
+            ->and($duplicates[$firstProject->id]['duplicate_group'])
+            ->toBe($duplicates[$thirdProject->id]['duplicate_group'])
+            ->and($duplicates[$thirdProject->id]['duplicate_match_reasons'])
+            ->toContain('título do projeto');
+    }
+
+    public function test_it_imports_the_project_submission_date(): void
+    {
+        $selectionProcess = SelectionProcess::factory()->create();
+        $service = new ImportProjectsService($selectionProcess, new Project);
+
+        $service->import(new Collection([
+            new Collection([
+                new Collection([
+                    'id_da_resposta' => '123',
+                    'data_de_envio' => '2025-06-17 13:22:37',
+                    'nome_completo' => 'João Silva',
+                    'titulo_do_projeto' => 'Meu Projeto',
+                    'resumo' => 'Um resumo aqui',
+                    'curso' => 'Mestrado',
+                    'deseja_concorrer_sob_o_sistema_de_acoes_afirmativas' => 'Não',
+                ]),
+            ]),
+        ]));
+
+        expect($selectionProcess->projects()->firstOrFail()->submitted_at->toDateTimeString())
+            ->toBe('2025-06-17 13:22:37');
+    }
 
     public function test_handle_original_content_structures_content_and_documents()
     {
@@ -59,7 +119,7 @@ class ImportProjectsServiceTest extends TestCase
         // Check documents
         $documents = collect($project->content['documents']);
         $this->assertCount(1, $documents);
-        $this->assertEquals('Faca O Upload Do Projeto', $documents->first()['label']);
+        $this->assertEquals('Projeto', $documents->first()['label']);
         $this->assertEquals('projeto.pdf', $documents->first()['name']);
         $this->assertEquals('fu_123', $documents->first()['filename']);
     }

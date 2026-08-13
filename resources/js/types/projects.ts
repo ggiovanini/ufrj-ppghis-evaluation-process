@@ -26,6 +26,11 @@ export type ProjectHomologationStatus = 'pending' | 'approved' | 'rejected';
 export interface Project {
     id: number;
     register_id: string;
+    submitted_at: string | null;
+    potential_duplicate: boolean;
+    duplicate_group: string | null;
+    duplicate_group_size: number | null;
+    duplicate_match_reasons: string[];
     candidate_name: string;
     title: string;
     modality: ProjectModality;
@@ -64,6 +69,11 @@ export interface Project {
 export interface ProjectWithDetail {
     id: number;
     register_id: string;
+    submitted_at: string | null;
+    potential_duplicate: boolean;
+    duplicate_group: string | null;
+    duplicate_group_size: number | null;
+    duplicate_match_reasons: string[];
     candidate_name: string;
     title: string;
     description: string;

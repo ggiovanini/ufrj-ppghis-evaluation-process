@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { createForm, Head, Link } from '@inertiajs/vue3';
-import { ChevronLeft, SquareActivityIcon } from '@lucide/vue';
+import { createForm, Head } from '@inertiajs/vue3';
+import { ChevronLeft } from '@lucide/vue';
 import { ref } from 'vue';
 import TeamController from '@/actions/App/Http/Controllers/Team/TeamController';
 import Heading from '@/components/Heading.vue';
@@ -15,7 +15,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import team from '@/routes/team';
 
 defineProps<{
     roles: { value: string; label: string }[];

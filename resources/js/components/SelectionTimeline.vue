@@ -35,7 +35,7 @@ const getPhaseStatus = (phaseValue: string) => {
     <div class="relative flex w-full items-center justify-between py-8">
         <!-- Connecting Line -->
         <div
-            class="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 bg-muted"
+            class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-muted"
         >
             <div
                 class="h-full bg-primary transition-all duration-500"
@@ -76,7 +76,7 @@ const getPhaseStatus = (phaseValue: string) => {
                 <span
                     :class="
                         cn(
-                            'text-xs font-medium uppercase tracking-wider transition-colors duration-200',
+                            'text-xs font-medium tracking-wider uppercase transition-colors duration-200',
                             getPhaseStatus(phase.value) === 'current'
                                 ? 'text-primary'
                                 : 'text-muted-foreground',

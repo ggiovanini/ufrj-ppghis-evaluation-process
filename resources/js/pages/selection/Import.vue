@@ -94,40 +94,62 @@ setLayoutProps({
                 <CardContent>
                     <form @submit.prevent="submit" class="space-y-4">
                         <div class="grid w-full items-center gap-1.5">
-                            <Label for="modality">Modalidade dos projetos</Label>
+                            <Label for="modality"
+                                >Modalidade dos projetos</Label
+                            >
                             <select
                                 id="modality"
                                 v-model="form.modality"
                                 class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                             >
-                                <option value="both">Mestrado e doutorado</option>
+                                <option value="both">
+                                    Mestrado e doutorado
+                                </option>
                                 <option value="master">Apenas mestrado</option>
-                                <option value="doctorate">Apenas doutorado</option>
+                                <option value="doctorate">
+                                    Apenas doutorado
+                                </option>
                             </select>
-                            <div v-if="form.errors.modality" class="text-sm text-destructive">
+                            <div
+                                v-if="form.errors.modality"
+                                class="text-sm text-destructive"
+                            >
                                 {{ form.errors.modality }}
                             </div>
                         </div>
 
                         <div class="grid w-full items-center gap-1.5">
-                            <Label for="inbox_file">ZIP disponível no servidor</Label>
+                            <Label for="inbox_file"
+                                >ZIP disponível no servidor</Label
+                            >
                             <select
                                 id="inbox_file"
                                 v-model="form.inbox_file"
                                 @change="onInboxFileChange"
                                 class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                             >
-                                <option value="">Selecione um arquivo ZIP</option>
-                                <option v-for="inboxFile in inboxFiles" :key="inboxFile" :value="inboxFile">
+                                <option value="">
+                                    Selecione um arquivo ZIP
+                                </option>
+                                <option
+                                    v-for="inboxFile in inboxFiles"
+                                    :key="inboxFile"
+                                    :value="inboxFile"
+                                >
                                     {{ inboxFile }}
                                 </option>
                             </select>
-                            <div v-if="form.errors.inbox_file" class="text-sm text-destructive">
+                            <div
+                                v-if="form.errors.inbox_file"
+                                class="text-sm text-destructive"
+                            >
                                 {{ form.errors.inbox_file }}
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div
+                            class="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
                             <span class="h-px flex-1 bg-border"></span>
                             ou envie uma planilha
                             <span class="h-px flex-1 bg-border"></span>
@@ -166,7 +188,10 @@ setLayoutProps({
                         <div class="flex justify-end">
                             <Button
                                 type="submit"
-                                :disabled="form.processing || (!form.file && !form.inbox_file)"
+                                :disabled="
+                                    form.processing ||
+                                    (!form.file && !form.inbox_file)
+                                "
                             >
                                 {{
                                     form.processing

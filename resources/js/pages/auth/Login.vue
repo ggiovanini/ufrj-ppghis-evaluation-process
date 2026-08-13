@@ -8,7 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -26,7 +25,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head title="Entrar" />
 
     <div
         v-if="status"
@@ -97,11 +96,6 @@ defineProps<{
                 <Spinner v-if="processing" />
                 Acessar
             </Button>
-        </div>
-
-        <div class="text-center text-sm text-muted-foreground">
-            Não possui uma conta?
-            <TextLink :href="register()" :tabindex="5">Cadastre-se</TextLink>
         </div>
     </Form>
 </template>

@@ -16,8 +16,11 @@ class ReviewAssigmentService
     public function assignIndicated(Collection $projects, Collection $reviewers): void
     {
         foreach ($projects as $project) {
-            $indicatedName = $project->indication;
-            $indicatedName = strtolower($indicatedName);
+            $indicatedName = data_get(
+                $project->original_content,
+                'indicacao_de_especialista_do_corpo_docente_do_ppghis_para_avaliacao_do_projeto_de_pesquisa',
+            ) ?? $project->indication;
+            $indicatedName = strtolower((string) $indicatedName);
 
             if ($indicatedName) {
                 $reviewer = $reviewers->first(function ($user) use ($indicatedName) {

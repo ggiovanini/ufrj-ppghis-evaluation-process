@@ -2,8 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import imageBgAuth from '@/assets/images/bg-auth.jpg';
 import AppLogo from '@/components/AppLogo.vue';
-import { register } from '@/routes';
-import { dashboard, home, login } from '@/routes';
+import { dashboard, login } from '@/routes';
 </script>
 
 <template>
@@ -32,12 +31,6 @@ import { dashboard, home, login } from '@/routes';
                     >
                         Entrar
                     </Link>
-                    <Link
-                        :href="register()"
-                        class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
-                    >
-                        Registrar
-                    </Link>
                 </template>
             </nav>
         </header>
@@ -57,7 +50,7 @@ import { dashboard, home, login } from '@/routes';
                         }"
                     />
                     <Link
-                        :href="home()"
+                        :href="dashboard()"
                         class="relative z-20 flex items-center text-lg font-medium opacity-100 transition-opacity delay-300 duration-750 starting:opacity-0"
                     >
                         <AppLogo class-name="mr-2 h-20 fill-current" />

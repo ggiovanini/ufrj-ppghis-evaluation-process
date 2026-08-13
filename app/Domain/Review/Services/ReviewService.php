@@ -78,18 +78,18 @@ class ReviewService
                 $query->whereHas('reviewAssignments', function ($query) {
                     $query->whereIn('project_id', $this->selectionProcess->projects()->pluck('id'))
                         ->whereHas('review', function ($query) {
-                            $query->where('status', ReviewStatus::PENDENT);
+                            $query->where('status', '!=', ReviewStatus::SUBMITTED);
                         });
                 });
             })
             ->get();
 
         foreach ($reviewers as $reviewer) {
-            $this->notifyReviewer($reviewer);
+            $this->notifyReviewer($reviewer, $onlyPending);
         }
     }
 
-    public function notifyReviewer(User $reviewer): void
+    public function notifyReviewer(User $reviewer, bool $onlyPending = false): void
     {
         if (! $this->selectionProcess) {
             return;
@@ -99,8 +99,10 @@ class ReviewService
             $query->where('user_id', $reviewer->id);
         })
             ->where('selection_process_id', $this->selectionProcess->id)
-            ->whereHas('reviewAssignments.review', function ($query) {
-                $query->where('status', ReviewStatus::PENDENT);
+            ->when($onlyPending, function ($query) {
+                $query->whereHas('reviewAssignments.review', function ($query) {
+                    $query->where('status', '!=', ReviewStatus::SUBMITTED);
+                });
             })
             ->get();
 

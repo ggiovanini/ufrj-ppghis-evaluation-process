@@ -56,17 +56,20 @@ const passwordInput = useTemplateRef('passwordInput');
                     >
                         <DialogHeader class="space-y-3">
                             <DialogTitle
-                                >Você esta certo que deseja remover a sua conta?</DialogTitle
+                                >Você esta certo que deseja remover a sua
+                                conta?</DialogTitle
                             >
                             <DialogDescription>
-                                Uma vez que sua conta for removida, todos os seus recursos e dados também serão permanentemente removidos. Por favor, insira sua senha para confirmar que deseja permanentemente remover sua conta.
+                                Uma vez que sua conta for removida, todos os
+                                seus recursos e dados também serão
+                                permanentemente removidos. Por favor, insira sua
+                                senha para confirmar que deseja permanentemente
+                                remover sua conta.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div class="grid gap-2">
-                            <Label for="password" class="sr-only"
-                                >Senha</Label
-                            >
+                            <Label for="password" class="sr-only">Senha</Label>
                             <PasswordInput
                                 id="password"
                                 name="password"

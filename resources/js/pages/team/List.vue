@@ -45,7 +45,6 @@ import {
 } from '@/components/ui/table';
 import team from '@/routes/team';
 import type { Reviewer } from '@/types/reviewer';
-import { authCan } from '@/types';
 
 interface PaginationLink {
     url: string | null;
@@ -257,7 +256,11 @@ const deleteUser = () => {
                                 {{ user.name }}
                             </TableCell>
                             <TableCell>{{ user.email }}</TableCell>
-                            <TableCell>{{ user.completed_count }}/{{ user.assigned_count }}</TableCell>
+                            <TableCell
+                                >{{ user.completed_count }}/{{
+                                    user.assigned_count
+                                }}</TableCell
+                            >
                             <TableCell>
                                 <div class="flex flex-wrap gap-1">
                                     <Badge

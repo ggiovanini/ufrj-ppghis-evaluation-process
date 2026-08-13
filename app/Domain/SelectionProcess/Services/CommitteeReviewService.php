@@ -22,7 +22,7 @@ class CommitteeReviewService
             'score' => null,
             'passed' => null,
             'comments' => null,
-            'user_id' => auth()->user()->id,
+            'user_id' => null,
             'submitted_at' => null,
         ]);
     }

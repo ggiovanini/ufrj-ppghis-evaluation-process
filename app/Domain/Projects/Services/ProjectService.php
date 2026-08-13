@@ -5,10 +5,12 @@ namespace App\Domain\Projects\Services;
 use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Projects\Types\ProjectScore;
 use App\Domain\Projects\Types\ProjectStage;
+use App\Domain\SelectionProcess\Services\CommitteeReviewService;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
 use App\Models\ReviewAssignment;
 use App\Models\SelectionProcess;
+use App\Models\User;
 
 class ProjectService
 {
@@ -83,6 +85,8 @@ class ProjectService
         $this->project->update([
             'stage' => ProjectStage::COMMITTEE,
         ]);
+        $committeeReviewService = new CommitteeReviewService;
+        $committeeReviewService->createCommitteeReview($this->project);
     }
 
     public function startWrittenExam(?Project $project = null): void

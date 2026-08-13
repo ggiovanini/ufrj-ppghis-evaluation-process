@@ -132,7 +132,7 @@ test('reviewer can save evaluation as draft', function () {
 
     $this->actingAs($this->reviewer)
         ->post(route('selection.evaluate.store', [$this->selection, $project]), [
-            'score' => 4, // APPROVED
+            'score' => ReviewScore::APPROVED->value,
             'comments' => 'Good project draft',
             'status' => 'draft',
         ])
@@ -140,7 +140,7 @@ test('reviewer can save evaluation as draft', function () {
         ->assertSessionHas('success', 'Rascunho salvo com sucesso!');
 
     $this->assertDatabaseHas('reviews', [
-        'score' => 4,
+        'score' => ReviewScore::APPROVED->value,
         'comments' => 'Good project draft',
         'status' => ReviewStatus::DRAFT->value,
     ]);
@@ -156,7 +156,7 @@ test('reviewer can save evaluation with answers', function () {
 
     $this->actingAs($this->reviewer)
         ->post(route('selection.evaluate.store', [$this->selection, $project]), [
-            'score' => 3, // APPROVED_WITH_RESERVATIONS
+            'score' => ReviewScore::APPROVED_WITH_RESERVATIONS->value,
             'comments' => 'Project with answers',
             'status' => 'draft',
             'answers' => $answers,
@@ -173,7 +173,7 @@ test('reviewer can submit evaluation', function () {
 
     $this->actingAs($this->reviewer)
         ->post(route('selection.evaluate.store', [$this->selection, $project]), [
-            'score' => 4, // APPROVED
+            'score' => ReviewScore::APPROVED->value,
             'comments' => 'Excellent project',
             'status' => 'submitted',
         ])
@@ -181,7 +181,7 @@ test('reviewer can submit evaluation', function () {
         ->assertSessionHas('success', 'Avaliação enviada com sucesso!');
 
     $this->assertDatabaseHas('reviews', [
-        'score' => 4,
+        'score' => ReviewScore::APPROVED->value,
         'comments' => 'Excellent project',
         'status' => ReviewStatus::SUBMITTED->value,
     ]);
@@ -233,12 +233,12 @@ test('reviewer cannot edit submitted evaluation', function () {
     Review::factory()->create([
         'review_assignment_id' => $assignment->id,
         'status' => ReviewStatus::SUBMITTED,
-        'score' => 4,
+        'score' => ReviewScore::APPROVED->value,
     ]);
 
     $this->actingAs($this->reviewer)
         ->post(route('selection.evaluate.store', [$this->selection, $project]), [
-            'score' => 3,
+            'score' => ReviewScore::DISAPPROVED->value,
             'comments' => 'Trying to change',
             'status' => 'draft',
         ])
@@ -248,7 +248,7 @@ test('reviewer cannot edit submitted evaluation', function () {
     $this->assertDatabaseHas('reviews', [
         'review_assignment_id' => $assignment->id,
         'status' => ReviewStatus::SUBMITTED->value,
-        'score' => 4,
+        'score' => ReviewScore::APPROVED->value,
     ]);
 });
 
@@ -306,7 +306,7 @@ test('reviewer cannot submit evaluation with missing required answers', function
 
     $this->actingAs($this->reviewer)
         ->post(route('selection.evaluate.store', [$this->selection, $project]), [
-            'score' => 4, // APPROVED
+            'score' => ReviewScore::APPROVED->value,
             'status' => 'submitted',
             'answers' => [], // Missing answer for field 1
         ])

@@ -19,7 +19,7 @@ class SelectionProcessSeeder extends Seeder
         ]);
 
         $disk = Storage::disk('local');
-        $filename = 'MES-DOUTORADO-PPGHIS2027-ID147925.zip';
+        $filename = 'MESTRADO-DOUTORADO-PPGHIS2027-ID147925.zip';
 
         $inboxPath = "inbox/{$filename}";
         $outboxPath = "outbox/{$filename}";

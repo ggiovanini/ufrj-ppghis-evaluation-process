@@ -12,8 +12,8 @@ enum ProjectHomologationStatus: string
     {
         return match ($this) {
             self::PENDING => 'Pendente',
-            self::APPROVED => 'Aprovado',
-            self::REJECTED => 'Desaprovado',
+            self::APPROVED => 'Homologado',
+            self::REJECTED => 'Revogado',
         };
     }
 }

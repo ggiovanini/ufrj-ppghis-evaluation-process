@@ -26,7 +26,13 @@ const editScore = () => {
 </script>
 
 <template>
-    <Card v-if="project.modality === 'master' && canManage && ['written_exam', 'committee', 'finished'].includes(project.stage)">
+    <Card
+        v-if="
+            project.modality === 'master' &&
+            canManage &&
+            ['written_exam', 'committee', 'finished'].includes(project.stage)
+        "
+    >
         <CardHeader
             class="flex flex-row items-center justify-between space-y-0 pb-2"
         >

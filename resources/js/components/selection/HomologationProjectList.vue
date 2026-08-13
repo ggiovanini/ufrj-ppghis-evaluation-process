@@ -2,6 +2,10 @@
 import { Link, router } from '@inertiajs/vue3';
 import {
     Asterisk,
+    AlertTriangle,
+    ArrowDown,
+    ArrowUp,
+    ArrowUpDown,
     Check,
     CheckCircle2,
     FilePlus2,
@@ -44,6 +48,7 @@ import selectionRoutes from '@/routes/selection';
 import type { DataFilters, DataPagination } from '@/types/pagination';
 import type { Project } from '@/types/projects';
 import type { SelectionProcess } from '@/types/selection-process';
+import ProjectColumnTitle from '@/pages/projects/partials/ProjectColumnTitle.vue';
 
 const props = defineProps<{
     selection: SelectionProcess;
@@ -53,6 +58,31 @@ const props = defineProps<{
 }>();
 
 const search = ref(props.filters?.search || '');
+
+const sortBy = (column: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+
+    if (props.filters?.sort === column && props.filters?.direction === 'asc') {
+        direction = 'desc';
+    }
+
+    router.get(
+        window.location.pathname,
+        { ...props.filters, sort: column, direction },
+        { preserveState: true, replace: true },
+    );
+};
+
+const formatSubmittedAt = (value: string | null) => {
+    if (!value) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    }).format(new Date(value));
+};
 
 watchDebounced(
     search,
@@ -238,8 +268,107 @@ const confirmFinalize = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Candidato</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead
+                                class="cursor-pointer hover:bg-muted/50"
+                                @click="sortBy('candidate_name')"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Candidato
+                                    <ArrowUp
+                                        v-if="
+                                            filters?.sort ===
+                                                'candidate_name' &&
+                                            filters?.direction === 'asc'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowDown
+                                        v-else-if="
+                                            filters?.sort === 'candidate_name'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowUpDown
+                                        v-else
+                                        class="h-4 w-4 text-muted-foreground/50"
+                                    />
+                                </div>
+                            </TableHead>
+                            <TableHead
+                                class="cursor-pointer whitespace-nowrap hover:bg-muted/50"
+                                @click="sortBy('submitted_at')"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Data de envio
+                                    <ArrowUp
+                                        v-if="
+                                            filters?.sort === 'submitted_at' &&
+                                            filters?.direction === 'asc'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowDown
+                                        v-else-if="
+                                            filters?.sort === 'submitted_at'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowUpDown
+                                        v-else
+                                        class="h-4 w-4 text-muted-foreground/50"
+                                    />
+                                </div>
+                            </TableHead>
+                            <TableHead
+                                class="cursor-pointer hover:bg-muted/50"
+                                @click="sortBy('status')"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Status
+                                    <ArrowUp
+                                        v-if="
+                                            filters?.sort === 'status' &&
+                                            filters?.direction === 'asc'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowDown
+                                        v-else-if="filters?.sort === 'status'"
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowUpDown
+                                        v-else
+                                        class="h-4 w-4 text-muted-foreground/50"
+                                    />
+                                </div>
+                            </TableHead>
+                            <TableHead
+                                class="cursor-pointer hover:bg-muted/50"
+                                @click="sortBy('duplicates')"
+                            >
+                                <div
+                                    class="flex items-center gap-2 whitespace-nowrap"
+                                >
+                                    Duplicidade
+                                    <ArrowUp
+                                        v-if="
+                                            filters?.sort === 'duplicates' &&
+                                            filters?.direction === 'asc'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowDown
+                                        v-else-if="
+                                            filters?.sort === 'duplicates'
+                                        "
+                                        class="h-4 w-4"
+                                    />
+                                    <ArrowUpDown
+                                        v-else
+                                        class="h-4 w-4 text-muted-foreground/50"
+                                    />
+                                </div>
+                            </TableHead>
                             <TableHead
                                 class="flex items-center justify-end pe-4"
                             >
@@ -251,20 +380,21 @@ const confirmFinalize = () => {
                         <TableRow
                             v-for="project in projects.data"
                             :key="project.id"
+                            :class="
+                                project.potential_duplicate
+                                    ? 'bg-amber-50/50 dark:bg-amber-950/10'
+                                    : undefined
+                            "
                         >
                             <TableCell
                                 class="font-medium"
                                 @click="navigateToShowProject(project.id)"
                             >
-                                <span>{{ project.candidate_name }}</span>
-                                <span
-                                    class="line-clamp-1 text-xs font-normal text-muted-foreground"
-                                    >#{{ project.id }} {{ project.title }}</span
-                                >
-                                <Badge variant="secondary">
-                                    {{ project.modality_label }}
-                                </Badge>
+                                <ProjectColumnTitle :project="project" />
                             </TableCell>
+                            <TableCell class="text-center whitespace-nowrap">{{
+                                formatSubmittedAt(project.submitted_at)
+                            }}</TableCell>
                             <TableCell>
                                 <Badge
                                     :variant="
@@ -281,6 +411,29 @@ const confirmFinalize = () => {
                                 </Badge>
                             </TableCell>
                             <TableCell>
+                                <div
+                                    v-if="project.potential_duplicate"
+                                    class="flex flex-col gap-1"
+                                >
+                                    <div
+                                        class="flex items-center gap-1 text-center"
+                                    >
+                                        <Badge
+                                            variant="outline"
+                                            class="border-amber-500 text-amber-700"
+                                        >
+                                            <AlertTriangle
+                                                class="h-4 w-4 text-amber-600"
+                                            />
+                                            {{ project.duplicate_group }}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <span v-else class="text-muted-foreground"
+                                    >—</span
+                                >
+                            </TableCell>
+                            <TableCell>
                                 <div class="flex justify-end gap-2">
                                     <Button
                                         size="sm"
@@ -295,7 +448,7 @@ const confirmFinalize = () => {
                                         "
                                     >
                                         <Check class="h-4 w-4" />
-                                        Aprovar
+                                        Homologar
                                     </Button>
                                     <Button
                                         size="sm"
@@ -310,7 +463,7 @@ const confirmFinalize = () => {
                                         "
                                     >
                                         <X class="h-4 w-4" />
-                                        Desaprovar
+                                        Não homologar
                                     </Button>
                                 </div>
                             </TableCell>
@@ -328,16 +481,16 @@ const confirmFinalize = () => {
                 <DialogTitle>
                     {{
                         pendingAction?.status === 'rejected'
-                            ? 'Desaprovar cadastro'
-                            : 'Aprovar cadastro'
+                            ? 'Não homologar cadastro'
+                            : 'Homologar cadastro'
                     }}
                 </DialogTitle>
                 <DialogDescription>
                     Tem certeza que deseja
                     {{
                         pendingAction?.status === 'rejected'
-                            ? 'desaprovar'
-                            : 'aprovar'
+                            ? 'não homologar'
+                            : 'homologar'
                     }}
                     o cadastro de
                     <strong>{{ pendingAction?.project.candidate_name }}</strong
@@ -346,7 +499,7 @@ const confirmFinalize = () => {
             </DialogHeader>
 
             <div v-if="pendingAction?.status === 'rejected'" class="space-y-2">
-                <Label for="homologation-reason">Motivo da desaprovação</Label>
+                <Label for="homologation-reason">Motivo</Label>
                 <textarea
                     id="homologation-reason"
                     v-model="rejectionReason"

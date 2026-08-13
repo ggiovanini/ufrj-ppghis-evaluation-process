@@ -20,6 +20,9 @@ class WrittenExamService
     public function update(Project $project, int $score, User $user): void
     {
         if ($project->modality !== ProjectModality::MASTER) {
+            $project->update([
+                'stage' => ProjectStage::COMMITTEE,
+            ]);
             $this->committeeReviewService->createCommitteeReview($project);
 
             return;

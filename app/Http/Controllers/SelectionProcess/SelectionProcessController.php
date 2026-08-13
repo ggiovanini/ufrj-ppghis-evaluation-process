@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SelectionProcess;
 use App\Domain\Front\Services\FrontIntegrationService;
 use App\Domain\Projects\Services\ImportProjectsArchiveService;
 use App\Domain\Projects\Services\ImportProjectsService;
+use App\Domain\Projects\Services\PotentialDuplicateProjectService;
 use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Projects\Types\ProjectStage;
@@ -29,6 +30,7 @@ use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -97,7 +99,23 @@ class SelectionProcessController extends Controller
                 ->whereNot('stage', ProjectStage::REJECTED);
         }
 
-        $projects = $projects
+        $sortableColumns = ['candidate_name', 'status'];
+        if ($selection->phase === SelectionProcessPhases::HOMOLOGATION) {
+            $sortableColumns = [...$sortableColumns, 'submitted_at', 'duplicates'];
+        }
+
+        $sort = in_array($request->input('sort'), $sortableColumns, true)
+            ? $request->input('sort')
+            : null;
+
+        $potentialDuplicates = [];
+        if ($selection->phase === SelectionProcessPhases::HOMOLOGATION) {
+            $potentialDuplicates = (new PotentialDuplicateProjectService)->analyze(
+                $selection->projects()->get(),
+            );
+        }
+
+        $projectsQuery = $projects
             ->with(['reviewAssignments.user', 'writtenExam', 'committeeEvaluation', 'finalResults'])
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -105,13 +123,49 @@ class SelectionProcessController extends Controller
                         ->orWhere('title', 'like', "%{$search}%");
                 });
             })
-            ->when($request->sort, function ($query, $sort) use ($request) {
-                $query->orderBy($sort, $request->direction ?? 'asc');
+            ->when($sort && $sort !== 'duplicates', function ($query) use ($sort, $request) {
+                $query->orderBy($sort === 'status' ? 'homologation_status' : $sort, $request->direction === 'desc' ? 'desc' : 'asc');
             }, function ($query) {
                 $query->orderBy('candidate_name');
-            })
-            ->paginate()
-            ->withQueryString();
+            });
+
+        if ($sort === 'duplicates') {
+            $allProjects = $projectsQuery->get()
+                ->sortBy(function (Project $project) use ($potentialDuplicates): string {
+                    $duplicate = $potentialDuplicates[$project->id] ?? null;
+
+                    return sprintf(
+                        '%d-%s-%s',
+                        $duplicate['potential_duplicate'] ? 0 : 1,
+                        $duplicate['duplicate_group'] ?? 'ZZZ',
+                        $project->candidate_name,
+                    );
+                });
+
+            if ($request->direction === 'desc') {
+                $allProjects = $allProjects->reverse();
+            }
+
+            $perPage = 15;
+            $page = $request->integer('page', 1);
+            $projects = new LengthAwarePaginator(
+                $allProjects->forPage($page, $perPage)->values(),
+                $allProjects->count(),
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()],
+            );
+        } else {
+            $projects = $projectsQuery->paginate()->withQueryString();
+        }
+
+        if ($selection->phase === SelectionProcessPhases::HOMOLOGATION) {
+            $projects->getCollection()->each(function (Project $project) use ($potentialDuplicates): void {
+                foreach ($potentialDuplicates[$project->id] as $attribute => $value) {
+                    $project->setAttribute($attribute, $value);
+                }
+            });
+        }
 
         $reviewers = User::role('reviewer')
             ->withCount(['reviewAssignments as assigned_count' => function ($query) use ($selection) {

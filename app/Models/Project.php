@@ -19,6 +19,7 @@ class Project extends Model
     protected $fillable = [
         'candidate_name',
         'register_id',
+        'submitted_at',
         'title',
         'description',
         'modality',
@@ -43,6 +44,7 @@ class Project extends Model
         'stage' => ProjectStage::class,
         'rejected_on_stage' => ProjectStage::class,
         'review_score' => 'int',
+        'submitted_at' => 'datetime',
         'written_exam_score' => 'int',
         'committee_score' => 'int',
         'final_score' => 'int',

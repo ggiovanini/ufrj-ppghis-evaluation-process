@@ -61,6 +61,7 @@ import type {
     SelectionProcessStats,
     SelectionProcess,
 } from '@/types/selection-process';
+import ProjectColumnTitle from '@/pages/projects/partials/ProjectColumnTitle.vue';
 
 const props = defineProps<{
     selection: SelectionProcess;
@@ -410,16 +411,7 @@ const isFullyAssigned = computed(() => {
                                 class="ps-4 font-medium"
                                 @click="navigateToShowProject(project.id)"
                             >
-                                <div class="flex flex-col gap-1">
-                                    <span>{{ project.candidate_name }}</span>
-                                    <span
-                                        class="line-clamp-1 text-xs font-normal text-muted-foreground"
-                                        >{{ project.title }}</span
-                                    >
-                                    <Badge variant="secondary">
-                                        {{ project.modality_label }}
-                                    </Badge>
-                                </div>
+                                <ProjectColumnTitle :project="project" />
                             </TableCell>
                             <TableCell class="text-center">
                                 <Badge

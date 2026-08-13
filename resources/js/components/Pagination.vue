@@ -34,7 +34,7 @@ defineProps<{
             <template v-for="(link, key) in meta.links" :key="key">
                 <div
                     v-if="link.url === null"
-                    class="inline-flex h-10 items-center justify-center rounded-xl aspect-square border border-input bg-background p-2 text-sm font-medium text-muted-foreground opacity-50 ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                    class="inline-flex aspect-square h-10 items-center justify-center rounded-xl border border-input bg-background p-2 text-sm font-medium text-muted-foreground opacity-50 ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                     <template v-if="link.label.includes('terior')">
                         <ChevronLeft class="mr-1 h-4 w-4" />
@@ -49,7 +49,7 @@ defineProps<{
                 <Link
                     v-else
                     :href="link.url"
-                    class="inline-flex h-10 items-center justify-center rounded-xl aspect-square border border-input bg-background p-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                    class="inline-flex aspect-square h-10 items-center justify-center rounded-xl border border-input bg-background p-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                     :class="{
                         'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground':
                             link.active,

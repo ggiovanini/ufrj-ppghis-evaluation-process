@@ -15,50 +15,50 @@ test('it calculates the rounded average score of reviews', function () {
         'stage' => ProjectStage::IMPORTED,
     ]);
 
-    // Create 3 reviews with scores: 4, 3, 2. Average is 3.
+    // Create 3 reviews with scores: 10, 8, 5. Average is rounded to 7.67.
     $assignment1 = ReviewAssignment::factory()->create(['project_id' => $project->id]);
-    Review::factory()->create(['review_assignment_id' => $assignment1->id, 'score' => ReviewScore::APPROVED]); // 4
+    Review::factory()->create(['review_assignment_id' => $assignment1->id, 'score' => ReviewScore::APPROVED]); // 10
 
     $assignment2 = ReviewAssignment::factory()->create(['project_id' => $project->id]);
-    Review::factory()->create(['review_assignment_id' => $assignment2->id, 'score' => ReviewScore::APPROVED_WITH_RESERVATIONS]); // 3
+    Review::factory()->create(['review_assignment_id' => $assignment2->id, 'score' => ReviewScore::APPROVED_WITH_RESERVATIONS]); // 8
 
     $assignment3 = ReviewAssignment::factory()->create(['project_id' => $project->id]);
-    Review::factory()->create(['review_assignment_id' => $assignment3->id, 'score' => ReviewScore::INDICATION_TO_DISAPPROVAL]); // 2
+    Review::factory()->create(['review_assignment_id' => $assignment3->id, 'score' => ReviewScore::INDICATION_TO_DISAPPROVAL]); // 5
 
     $service = new ProjectService($project);
     $service->calculeReviewStepScore();
 
-    expect($project->fresh()->review_score)->toBe(ReviewScore::APPROVED_WITH_RESERVATIONS);
+    expect($project->fresh()->review_score)->toBe(767);
 });
 
 test('it rounds the average score correctly (ceil/floor)', function () {
     $project = Project::factory()->create();
 
-    // Scores: 4 and 3. Average 3.5. Round should be 4 (standard PHP round).
+    // Scores: 10 and 8. Average 9. Round should be 900 after normalization.
     $assignment1 = ReviewAssignment::factory()->create(['project_id' => $project->id]);
-    Review::factory()->create(['review_assignment_id' => $assignment1->id, 'score' => ReviewScore::APPROVED]); // 4
+    Review::factory()->create(['review_assignment_id' => $assignment1->id, 'score' => ReviewScore::APPROVED]); // 10
 
     $assignment2 = ReviewAssignment::factory()->create(['project_id' => $project->id]);
-    Review::factory()->create(['review_assignment_id' => $assignment2->id, 'score' => ReviewScore::APPROVED_WITH_RESERVATIONS]); // 3
+    Review::factory()->create(['review_assignment_id' => $assignment2->id, 'score' => ReviewScore::APPROVED_WITH_RESERVATIONS]); // 8
 
     $service = new ProjectService($project);
     $service->calculeReviewStepScore();
 
-    expect($project->fresh()->review_score->value)->toBe(4);
+    expect($project->fresh()->review_score)->toBe(900);
 });
 
 test('it handles non-integer results and updates stage to rejected if score is low', function () {
     $project = Project::factory()->create(['stage' => ProjectStage::IMPORTED]);
 
-    // Score: 1. Average 1.
+    // Score: 3. Average 3.
     $assignment1 = ReviewAssignment::factory()->create(['project_id' => $project->id]);
-    Review::factory()->create(['review_assignment_id' => $assignment1->id, 'score' => ReviewScore::DISAPPROVED]); // 1
+    Review::factory()->create(['review_assignment_id' => $assignment1->id, 'score' => ReviewScore::DISAPPROVED]); // 3
 
     $service = new ProjectService($project);
     $service->calculeReviewStepScore();
 
     $project->refresh();
-    expect($project->review_score)->toBe(ReviewScore::DISAPPROVED);
+    expect($project->review_score)->toBe(300);
     expect($project->stage)->toBe(ProjectStage::REJECTED)
         ->and($project->rejected_on_stage)->toBe(ProjectStage::IMPORTED);
 });

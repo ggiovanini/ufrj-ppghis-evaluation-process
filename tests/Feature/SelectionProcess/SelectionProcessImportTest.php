@@ -39,6 +39,7 @@ test('it can import projects through the controller', function () {
         'selection_process_id' => $selectionProcess->id,
         'candidate_name' => 'VANIA BARYNER DE BARROS',
         'title' => 'Políticas educacionais do Movimento Zapatista e do Movimento dos Trabalhadores Rurais Sem Terra (MST) Onde se aproximam e se afastam',
+        'submitted_at' => '2025-06-17 13:22:37',
     ]);
 
     $project = Project::where('candidate_name', 'VANIA BARYNER DE BARROS')->first();

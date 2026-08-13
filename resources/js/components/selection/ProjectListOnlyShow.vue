@@ -51,6 +51,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import ProjectColumnTitle from '@/pages/projects/partials/ProjectColumnTitle.vue';
 import selectionRoutes from '@/routes/selection';
 import teamRoutes from '@/routes/team';
 import { authCan } from '@/types';
@@ -263,7 +264,9 @@ const reassignReviewer = () => {
             class="relative flex w-full flex-col overflow-hidden rounded-xl border p-2"
         >
             <PlaceholderPattern class="z-0" />
-            <div class="z-10 mb-2 flex flex-col gap-3 p-2 lg:flex-row lg:items-center">
+            <div
+                class="z-10 mb-2 flex flex-col gap-3 p-2 lg:flex-row lg:items-center"
+            >
                 <div class="relative w-full lg:max-w-sm">
                     <Search
                         class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -283,7 +286,9 @@ const reassignReviewer = () => {
                 </div>
                 <Select
                     :model-value="selectedStatus"
-                    @update:model-value="(value) => updateFilter('status', value)"
+                    @update:model-value="
+                        (value) => updateFilter('status', value)
+                    "
                 >
                     <SelectTrigger class="w-full lg:w-56">
                         <SelectValue placeholder="Todos os status" />
@@ -301,13 +306,17 @@ const reassignReviewer = () => {
                 </Select>
                 <Select
                     :model-value="selectedModality"
-                    @update:model-value="(value) => updateFilter('modality', value)"
+                    @update:model-value="
+                        (value) => updateFilter('modality', value)
+                    "
                 >
                     <SelectTrigger class="w-full lg:w-48">
                         <SelectValue placeholder="Todas as modalidades" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Todas as modalidades</SelectItem>
+                        <SelectItem value="all"
+                            >Todas as modalidades</SelectItem
+                        >
                         <SelectItem
                             v-for="option in modalityOptions"
                             :key="option.value"
@@ -385,23 +394,15 @@ const reassignReviewer = () => {
                                 class="ps-4 font-medium"
                                 @click="navigateToShowProject(project.id)"
                             >
-                                <div class="flex flex-col gap-1">
-                                    <span>{{ project.candidate_name }}</span>
-                                    <span
-                                        class="line-clamp-1 text-xs font-normal text-muted-foreground"
-                                        >{{ project.title }}</span
-                                    >
-                                    <Badge variant="secondary">
-                                        {{ project.modality_label }}
-                                    </Badge>
-                                </div>
+                                <ProjectColumnTitle :project="project" />
                             </TableCell>
                             <TableCell class="pe-4 text-center">
                                 <Badge
                                     v-if="project.stage === 'rejected'"
                                     class="bg-orange-300"
                                 >
-                                    {{ project.stage_label }}: {{ project.rejected_on_stage_label }}
+                                    {{ project.stage_label }}:
+                                    {{ project.rejected_on_stage_label }}
                                 </Badge>
                                 <Badge v-else>
                                     {{ project.stage_label }}
@@ -602,8 +603,8 @@ const reassignReviewer = () => {
                     <SelectContent>
                         <SelectItem
                             v-for="reviewer in reviewers.filter(
-                                (reviewer) =>
-                                    reviewer.id !== selectedAssignment?.user_id,
+                                (item) =>
+                                    item.id !== selectedAssignment?.user_id,
                             )"
                             :key="reviewer.id"
                             :value="reviewer.id.toString()"

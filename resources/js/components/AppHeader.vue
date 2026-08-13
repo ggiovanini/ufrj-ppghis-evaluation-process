@@ -101,8 +101,8 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     if (
-        auth.value.currentSelectionProcess &&
-        authCan(auth.value, 'review.evaluate') ||
+        (auth.value.currentSelectionProcess &&
+            authCan(auth.value, 'review.evaluate')) ||
         authCan(auth.value, 'committee.evaluate')
     ) {
         result.push({
@@ -140,12 +140,6 @@ const rightNavItems = computed((): NavItem[] => {
             target: '_self',
         });
     }
-
-    result.push({
-        title: 'Website',
-        href: 'https://ppghis.historia.ufrj.br',
-        icon: BookOpen,
-    });
 
     return result;
 });

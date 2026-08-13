@@ -55,7 +55,11 @@ const finalizeResults = () => {
         return;
     }
 
-    if (!window.confirm('Tem certeza que deseja finalizar os resultados e avançar para a última etapa?')) {
+    if (
+        !window.confirm(
+            'Tem certeza que deseja finalizar os resultados e avançar para a última etapa?',
+        )
+    ) {
         return;
     }
 

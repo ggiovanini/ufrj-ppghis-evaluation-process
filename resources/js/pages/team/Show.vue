@@ -3,7 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ChevronLeft, Pencil, User as UserIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
-import ProjectList from '@/components/selection/ProjectList.vue';
+import ProjectListOnlyShow from '@/components/selection/ProjectListOnlyShow.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,6 @@ import type {
     SelectionProcess,
     SelectionProcessStats,
 } from '@/types/selection-process';
-import ProjectListOnlyShow from '@/components/selection/ProjectListOnlyShow.vue';
 
 interface User {
     id: number;

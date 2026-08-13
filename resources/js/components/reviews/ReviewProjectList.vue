@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { router, Link } from '@inertiajs/vue3';
-import {
-    Eye,
-    Search,
-    X,
-    ArrowUp,
-    ArrowDown,
-    ArrowUpDown,
-} from '@lucide/vue';
+import { Eye, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { ref } from 'vue';
 import Pagination from '@/components/Pagination.vue';

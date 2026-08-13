@@ -48,7 +48,9 @@ const isImageDocument = (document: ProjectDocument) =>
             <h4 class="text-lg font-semibold">Projeto</h4>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div
-                    v-for="(doc, index) in project.content.documents.filter((item) => item.label.toLocaleLowerCase() === 'projeto')"
+                    v-for="(doc, index) in project.content.documents.filter(
+                        (item) => item.label.toLocaleLowerCase() === 'projeto',
+                    )"
                     :key="index"
                     class="flex items-center justify-between rounded-lg border bg-card p-4"
                 >

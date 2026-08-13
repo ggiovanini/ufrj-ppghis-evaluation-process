@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import imageBgAuth from '@/assets/images/bg-auth.jpg';
 import AppLogo from '@/components/AppLogo.vue';
-import { home } from '@/routes';
+import { dashboard } from '@/routes';
 
 defineProps<{
     title?: string;
@@ -24,7 +24,7 @@ defineProps<{
                 }"
             />
             <Link
-                :href="home()"
+                :href="dashboard()"
                 class="relative z-20 flex items-center text-lg font-medium"
             >
                 <AppLogo class-name="mr-2 h-20 fill-current" />
@@ -36,8 +36,8 @@ defineProps<{
             >
                 <div class="flex flex-col items-center space-y-2 text-center">
                     <Link
-                        :href="home()"
-                        class="relative z-20 items-center text-lg font-medium mb-9 lg:hidden flex"
+                        :href="dashboard()"
+                        class="relative z-20 mb-9 flex items-center text-lg font-medium lg:hidden"
                     >
                         <AppLogo class-name="mr-2 h-20 fill-current" />
                     </Link>

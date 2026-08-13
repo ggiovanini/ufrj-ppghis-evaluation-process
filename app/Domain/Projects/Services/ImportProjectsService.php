@@ -8,6 +8,7 @@ use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Projects\Types\ProjectStage;
 use App\Models\Project;
 use App\Models\SelectionProcess;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -99,10 +100,22 @@ class ImportProjectsService
     private function create(array $projectData, ProjectModality $modality): void
     {
         $project = new $this->entity;
+        $title = collect($projectData)->first(
+            fn (mixed $value, int|string $key): bool => filled($value)
+                && str_contains(Str::snake((string) $key), 'titulo_do_projeto')
+        ) ?? collect($projectData)
+            ->filter(fn (mixed $value, int|string $key): bool => str_contains(Str::snake((string) $key), 'upload_do_projeto'))
+            ->map(fn (mixed $value): mixed => is_string($value) ? json_decode($value, true) : null)
+            ->map(fn (mixed $value): mixed => data_get($value, '0.title'))
+            ->filter()
+            ->sortByDesc(fn (mixed $value): int => strlen((string) $value))
+            ->first();
+
         $project->fill([
             'candidate_name' => Str::trim($projectData['nome_completo']),
             'register_id' => Str::trim($projectData['id_da_resposta']),
-            'title' => Str::trim($projectData['titulo_do_projeto']),
+            'submitted_at' => $this->submittedAt($projectData['data_de_envio'] ?? null),
+            'title' => Str::trim((string) ($title ?? '')),
             'description' => Str::trim($projectData['resumo'] ?? null),
             'indication' => Str::trim($projectData['indicacao_de_especialista_do_corpo_docente_do_ppghis_para_avaliacao_do_projeto_de_pesquisa'] ?? null),
             'modality' => $modality->value,
@@ -116,6 +129,15 @@ class ImportProjectsService
         $this->handleOriginalContent($project);
 
         $this->count++;
+    }
+
+    private function submittedAt(mixed $value): ?Carbon
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        return $value instanceof Carbon ? $value : Carbon::parse((string) $value);
     }
 
     private function projectModality(array $projectData): ProjectModality
@@ -139,7 +161,6 @@ class ImportProjectsService
 
         $ignoreKeys = [
             'id_da_resposta',
-            'data_de_envio',
             'ultima_pagina',
             'idioma_inicial',
             'semente',
@@ -228,10 +249,12 @@ class ImportProjectsService
         $normalizedProjectId = $this->normalizeIdentifier($project->register_id);
         $normalizedDocumentName = $this->normalizeFilename($documentName);
 
-        return $this->filesIndex->first(function (array $file) use ($normalizedProjectId, $normalizedDocumentName): bool {
+        $result = $this->filesIndex->first(function (array $file) use ($normalizedProjectId, $normalizedDocumentName): bool {
             return $this->normalizeIdentifier($file['project_id']) === $normalizedProjectId
                 && $this->normalizeFilename($file['document_name']) === $normalizedDocumentName;
         });
+
+        return is_array($result) ? $result : null;
     }
 
     private function normalizeIdentifier(string $identifier): string
