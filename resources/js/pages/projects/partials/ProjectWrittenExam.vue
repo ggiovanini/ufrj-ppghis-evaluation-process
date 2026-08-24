@@ -17,6 +17,9 @@ defineProps<{
 const page = usePage();
 const auth = page.props.auth;
 const canManage = authCan(auth, 'projects.manage');
+const canEvaluateWrittenExam =
+    authCan(auth, 'committee.evaluate') &&
+    auth.roles.includes('master_committee');
 
 const isScoreModalOpen = ref(false);
 
@@ -29,7 +32,7 @@ const editScore = () => {
     <Card
         v-if="
             project.modality === 'master' &&
-            canManage &&
+            (canManage || canEvaluateWrittenExam) &&
             ['written_exam', 'committee', 'finished'].includes(project.stage)
         "
     >
@@ -41,7 +44,7 @@ const editScore = () => {
                 Prova escrita
             </CardTitle>
             <Button
-                v-if="project.stage === 'written_exam'"
+                v-if="project.stage === 'written_exam' && (canManage || canEvaluateWrittenExam)"
                 variant="ghost"
                 size="icon"
                 class="h-8 w-8"
@@ -57,7 +60,7 @@ const editScore = () => {
                     {{ project.written_exam_score_label || '---' }}
                 </Badge>
             </div>
-            <div v-if="!project.written_exam_score && canManage" class="mt-4">
+            <div v-if="!project.written_exam_score && (canManage || canEvaluateWrittenExam)" class="mt-4">
                 <Button variant="outline" class="w-full" @click="editScore">
                     Inserir Nota
                 </Button>

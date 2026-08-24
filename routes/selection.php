@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Projects\ProjectsController;
+use App\Http\Controllers\Reviews\CommitteeEvaluationController;
 use App\Http\Controllers\Reviews\EvaluateController;
+use App\Http\Controllers\Reviews\WrittenExamController;
 use App\Http\Controllers\SelectionProcess\ReviewAssignmentController;
 use App\Http\Controllers\SelectionProcess\ReviewController;
 use App\Http\Controllers\SelectionProcess\SelectionProcessController;
@@ -41,6 +43,8 @@ Route::middleware(['auth'])
         Route::delete('/{selection}/assignments/single', [ReviewAssignmentController::class, 'destroy'])->name('.assignments.destroy');
 
         Route::get('/{selection}/evaluate', [EvaluateController::class, 'index'])->name('.evaluate');
+        Route::get('/{selection}/committee', [CommitteeEvaluationController::class, 'index'])->name('.committee');
+        Route::get('/{selection}/written-exam', [WrittenExamController::class, 'index'])->name('.written-exam');
         Route::post('/{selection}/evaluate/{project}', [EvaluateController::class, 'store'])->name('.evaluate.store');
 
         Route::prefix('/{selection}/projects')

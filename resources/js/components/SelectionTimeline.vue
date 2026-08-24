@@ -27,6 +27,10 @@ const getPhaseStatus = (phaseValue: string) => {
         return 'current';
     }
 
+    if (phaseIndex === 5 && currentIndex === 4) {
+        return 'current';
+    }
+
     return 'pending';
 };
 </script>

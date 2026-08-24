@@ -271,13 +271,13 @@ const isFullyCalculated = computed(() => {
                                     />
                                 </div>
                             </TableHead>
-                            <TableHead>Status</TableHead>
                             <TableHead class="text-center">NMA</TableHead>
                             <TableHead class="text-center">NP</TableHead>
                             <TableHead class="text-center">NC</TableHead>
                             <TableHead class="text-center whitespace-nowrap"
                                 >Nota final</TableHead
                             >
+                            <TableHead>Status</TableHead>
                             <TableHead
                                 class="flex items-center justify-end pe-4"
                             >
@@ -304,17 +304,6 @@ const isFullyCalculated = computed(() => {
                                         {{ project.modality_label }}
                                     </Badge>
                                 </div>
-                            </TableCell>
-                            <TableCell class="pe-4 text-center">
-                                <Badge
-                                    :class="
-                                        project.stage === 'rejected'
-                                            ? 'bg-orange-300'
-                                            : ''
-                                    "
-                                >
-                                    {{ project.stage_label }}
-                                </Badge>
                             </TableCell>
                             <TableCell class="text-center">
                                 <Badge
@@ -356,27 +345,33 @@ const isFullyCalculated = computed(() => {
                                 >
                                     <Badge
                                         v-if="project.final_score !== null"
-                                        variant="secondary"
+                                        variant="default"
+                                        class="text-lg"
+                                        :class="
+                                            !project.final_score_passes
+                                                ? 'bg-muted text-white'
+                                                : 'bg-green-800 text-white'
+                                        "
                                     >
                                         {{ project.final_score_label }}
                                     </Badge>
                                     <Dot v-else class="mx-auto h-4 w-4" />
-                                    <Badge
-                                        v-if="project.final_score !== null"
-                                        class="ml-2"
-                                        :class="
-                                            project.final_score_passes
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-red-600 text-white'
-                                        "
-                                    >
-                                        {{
-                                            project.final_score_passes
-                                                ? 'Aprovado'
-                                                : 'Reprovado'
-                                        }}
-                                    </Badge>
                                 </div>
+                            </TableCell>
+                            <TableCell class="pe-4 text-center">
+                                <Badge
+                                    :class="
+                                        !project.final_score_passes
+                                            ? 'bg-muted text-white'
+                                            : 'bg-green-800 text-white'
+                                    "
+                                >
+                                    {{
+                                        project.final_score_passes
+                                            ? 'Aprovado'
+                                            : 'Reprovado'
+                                    }}
+                                </Badge>
                             </TableCell>
                             <TableCell class="text-right">
                                 <DropdownMenu>

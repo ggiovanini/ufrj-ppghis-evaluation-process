@@ -3,13 +3,11 @@
 namespace App\Http\Controllers\Reviews;
 
 use App\Domain\Front\Services\FrontIntegrationService;
-use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Review\Notifications\ReviewPdfReadyNotification;
 use App\Domain\Review\Services\ReviewPdfService;
 use App\Domain\Review\Services\ReviewService;
 use App\Domain\Review\Types\ReviewScore;
 use App\Domain\Review\Types\ReviewStatus;
-use App\Domain\Shared\Types\UserRoles;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\SelectionProcessResource;
@@ -28,34 +26,16 @@ class EvaluateController extends Controller
 {
     public function index(Request $request, SelectionProcess $selection): Response
     {
-        abort_unless(Gate::any(['review.view-own', 'committee.evaluate']), 403);
+        Gate::authorize('review.view-own');
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        $isCommittee = $user->can('committee.evaluate');
-
         $query = $selection->projects()
-            ->when($isCommittee, function ($query) use ($user) {
-                $modalities = [];
-
-                if ($user->hasRole(UserRoles::MASTER_COMMITTEE->value)) {
-                    $modalities[] = ProjectModality::MASTER->value;
-                }
-
-                if ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE->value)) {
-                    $modalities[] = ProjectModality::DOCTORATE->value;
-                }
-
-                $query->whereIn('modality', $modalities)
-                    ->whereHas('committeeEvaluation')
-                    ->with('committeeEvaluation');
-            }, function ($query) use ($user) {
-                $query->whereHas('reviewAssignments', function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })->with(['reviewAssignments' => function ($query) use ($user) {
-                    $query->where('user_id', $user->id)->with('review.reviewForm', 'review.reviewAssignment.project');
-                }]);
-            });
+            ->whereHas('reviewAssignments', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->with(['reviewAssignments' => function ($query) use ($user) {
+                $query->where('user_id', $user->id)->with('review.reviewForm', 'review.reviewAssignment.project');
+            }]);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -67,9 +47,7 @@ class EvaluateController extends Controller
         $sort = $request->input('sort', 'candidate_name');
         $direction = $request->input('direction', 'asc');
 
-        if ($sort === 'status' && $isCommittee) {
-            $query->orderByRaw('CASE WHEN committee_score IS NULL THEN 1 ELSE 2 END '.$direction);
-        } elseif ($sort === 'status') {
+        if ($sort === 'status') {
             $query->select('projects.*')
                 ->join('review_assignments', function ($join) {
                     $join->on('projects.id', '=', 'review_assignments.project_id')

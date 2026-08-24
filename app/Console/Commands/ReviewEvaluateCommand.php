@@ -9,13 +9,18 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('review:evaluate-all')]
+#[Signature('review:evaluate {number?}')]
 #[Description('Finaliza a avaliação de todos os projetos')]
-class ReviewEvaluateAll extends Command
+class ReviewEvaluateCommand extends Command
 {
     public function handle(): void
     {
-        $assignments = ReviewAssignment::all();
+        $number = (int) $this->argument('number');
+        $query = ReviewAssignment::query()->inRandomOrder();
+        if ($number > 0) {
+            $query->limit($number);
+        }
+        $assignments = $query->get();
         $assignments->each(function ($assignment) {
             $selectionProcess = $assignment?->project?->selectionProcess;
             if (! $selectionProcess) {

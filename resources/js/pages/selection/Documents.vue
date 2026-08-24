@@ -2,15 +2,23 @@
 import { Head, setLayoutProps } from '@inertiajs/vue3';
 import {
     CheckCircle2,
-    ExternalLink,
     FileText,
+    FileX2,
     FolderOpen,
     HelpCircle,
     XCircle,
 } from '@lucide/vue';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Table,
     TableBody,
@@ -26,6 +34,7 @@ type Document = {
     name: string;
     label: string | null;
     filename: string | null;
+    path: string | null;
     url: string | null;
 };
 
@@ -49,6 +58,8 @@ type StorageDocument = {
     } | null;
 };
 
+type ViewableDocument = Document | StorageDocument;
+
 const props = defineProps<{
     selection: {
         data: {
@@ -61,6 +72,22 @@ const props = defineProps<{
     projects: Project[];
     storageDocuments: StorageDocument[];
 }>();
+
+const isDocumentDialogOpen = ref(false);
+const selectedDocument = ref<ViewableDocument | null>(null);
+
+function openDocument(document: ViewableDocument): void {
+    if (!document.url && !('path' in document && document.path)) {
+        return;
+    }
+
+    selectedDocument.value = document;
+    isDocumentDialogOpen.value = true;
+}
+
+function documentUrl(document: ViewableDocument): string | null {
+    return document.url ?? null;
+}
 
 setLayoutProps({
     breadcrumbs: [
@@ -149,21 +176,21 @@ setLayoutProps({
                                     </div>
                                 </TableCell>
                                 <TableCell class="text-right">
-                                    <a
-                                        v-if="document.url"
-                                        :href="document.url"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <button
+                                        v-if="document.url || document.path"
+                                        type="button"
                                         class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                                        @click="openDocument(document)"
                                     >
                                         Abrir
-                                        <ExternalLink class="h-4 w-4" />
-                                    </a>
+                                    </button>
                                     <span
                                         v-else
-                                        class="text-sm text-muted-foreground"
-                                        >Indisponível</span
+                                        class="inline-flex items-center gap-1 text-sm text-muted-foreground"
                                     >
+                                        <FileX2 class="h-4 w-4" />
+                                        Indisponível
+                                    </span>
                                 </TableCell>
                             </TableRow>
                             <TableRow
@@ -266,15 +293,13 @@ setLayoutProps({
                                 </Badge>
                             </TableCell>
                             <TableCell class="text-right">
-                                <a
-                                    :href="document.url"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    type="button"
                                     class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                                    @click="openDocument(document)"
                                 >
                                     Abrir
-                                    <ExternalLink class="h-4 w-4" />
-                                </a>
+                                </button>
                             </TableCell>
                         </TableRow>
                         <TableRow v-if="storageDocuments.length === 0">
@@ -290,4 +315,21 @@ setLayoutProps({
             </div>
         </TabsContent>
     </TabsRoot>
+
+    <Dialog v-model:open="isDocumentDialogOpen">
+        <DialogContent class="h-[90vh] w-[95vw] max-w-[95vw]! lg:max-w-7xl!">
+            <DialogHeader>
+                <DialogTitle>{{ selectedDocument?.name }}</DialogTitle>
+                <DialogDescription>
+                    Visualização do arquivo selecionado.
+                </DialogDescription>
+            </DialogHeader>
+            <iframe
+                v-if="selectedDocument && documentUrl(selectedDocument)"
+                :src="documentUrl(selectedDocument) ?? undefined"
+                :title="selectedDocument.name"
+                class="h-[70vh] w-full rounded-md border"
+            />
+        </DialogContent>
+    </Dialog>
 </template>

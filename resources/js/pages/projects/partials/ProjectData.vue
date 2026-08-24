@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import { Download, ExternalLink, FileText } from '@lucide/vue';
+import { Download, ExternalLink, FileText, FileX2 } from '@lucide/vue';
 import { ref } from 'vue';
 import {
     Dialog,
@@ -27,12 +27,17 @@ type ProjectDocument = {
     name: string;
     filename: string;
     ext?: string;
+    path?: string;
     url?: string;
 };
 
 const selectedDocument = ref<ProjectDocument | null>(null);
 
 const openDocument = (document: ProjectDocument) => {
+    if (!getFileUrl(document)) {
+        return;
+    }
+
     selectedDocument.value = document;
 };
 
@@ -51,8 +56,8 @@ const formatKey = (key: string | number) => {
 const isObject = (val: any) =>
     val !== null && typeof val === 'object' && !Array.isArray(val);
 
-const getFileUrl = (document: { url?: string; filename: string }) =>
-    document.url ?? `/storage/uploads/${document.filename}`;
+const getFileUrl = (document: { path?: string; url?: string }): string | null =>
+    document.url ?? null;
 
 const isImageDocument = (document: ProjectDocument) =>
     ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
@@ -118,6 +123,7 @@ const isImageDocument = (document: ProjectDocument) =>
                             </div>
                         </div>
                         <button
+                            v-if="getFileUrl(doc)"
                             type="button"
                             @click="openDocument(doc)"
                             class="shrink-0 rounded-md p-2 transition-colors hover:bg-muted"
@@ -125,6 +131,14 @@ const isImageDocument = (document: ProjectDocument) =>
                         >
                             <ExternalLink class="h-4 w-4" />
                         </button>
+                        <span
+                            v-else
+                            class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+                            title="Arquivo indisponível"
+                        >
+                            <FileX2 class="h-4 w-4" />
+                            Indisponível
+                        </span>
                     </div>
                 </div>
             </div>
@@ -248,13 +262,13 @@ const isImageDocument = (document: ProjectDocument) =>
                             selectedDocument &&
                             isImageDocument(selectedDocument)
                         "
-                        :src="getFileUrl(selectedDocument)"
+                        :src="getFileUrl(selectedDocument) ?? undefined"
                         :alt="selectedDocument.name"
                         class="max-h-full max-w-full object-contain"
                     />
                     <iframe
                         v-else-if="selectedDocument"
-                        :src="getFileUrl(selectedDocument)"
+                        :src="getFileUrl(selectedDocument) ?? undefined"
                         :title="`Visualização de ${selectedDocument.name}`"
                         class="h-full min-h-[50vh] w-full"
                     />
@@ -262,8 +276,8 @@ const isImageDocument = (document: ProjectDocument) =>
 
                 <DialogFooter class="gap-2 sm:justify-end">
                     <a
-                        v-if="selectedDocument"
-                        :href="getFileUrl(selectedDocument)"
+                        v-if="selectedDocument && getFileUrl(selectedDocument)"
+                        :href="getFileUrl(selectedDocument) ?? undefined"
                         download
                         class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
@@ -271,8 +285,8 @@ const isImageDocument = (document: ProjectDocument) =>
                         Baixar arquivo
                     </a>
                     <a
-                        v-if="selectedDocument"
-                        :href="getFileUrl(selectedDocument)"
+                        v-if="selectedDocument && getFileUrl(selectedDocument)"
+                        :href="getFileUrl(selectedDocument) ?? undefined"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"

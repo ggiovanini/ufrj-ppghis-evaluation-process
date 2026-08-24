@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
-    BookOpen,
     Folder,
     LayoutGrid,
     Menu,
@@ -47,6 +46,8 @@ import { dashboard } from '@/routes';
 import {
     show as selectionProcessShow,
     evaluate as evaluateList,
+    committee as committeeList,
+    writtenExam as writtenExamList,
 } from '@/routes/selection';
 import selectionRoute from '@/routes/selection';
 import routeProjects from '@/routes/selection/projects';
@@ -80,7 +81,8 @@ const mainNavItems = computed((): NavItem[] => {
 
     if (
         auth.value.currentSelectionProcess &&
-        authCan(auth.value, 'users.manage')
+        (authCan(auth.value, 'users.manage') ||
+        authCan(auth.value, 'committee.evaluate'))
     ) {
         result.push({
             title: 'Processo seletivo',
@@ -101,15 +103,34 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     if (
-        (auth.value.currentSelectionProcess &&
-            authCan(auth.value, 'review.evaluate')) ||
+        auth.value.roles.includes('master_committee') &&
         authCan(auth.value, 'committee.evaluate')
     ) {
         result.push({
-            title: authCan(auth.value, 'committee.evaluate')
-                ? 'Avaliar comitês'
-                : 'Avaliar',
+            title: 'Provas escritas',
+            href: writtenExamList(auth.value.currentSelectionProcess),
+            icon: FileArchive,
+        });
+    }
+
+    if (
+        auth.value.currentSelectionProcess &&
+        authCan(auth.value, 'review.evaluate')
+    ) {
+        result.push({
+            title: 'Avaliar',
             href: evaluateList(auth.value.currentSelectionProcess),
+            icon: FileArchive,
+        });
+    }
+
+    if (
+        auth.value.currentSelectionProcess &&
+        authCan(auth.value, 'committee.evaluate')
+    ) {
+        result.push({
+            title: 'Provas orais',
+            href: committeeList(auth.value.currentSelectionProcess),
             icon: FileArchive,
         });
     }

@@ -7,20 +7,24 @@ use App\Domain\SelectionProcess\Services\CommitteeReviewService;
 use App\Domain\Shared\Types\UserRoles;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Console\Attributes\Signature;
+use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Command;
 
-class CommitteeCompleteAllCommand extends Command
+#[Signature('committee:complete {number?}')]
+#[Description('Completa todas as avaliações dos comitês')]
+class CommitteeCompleteCommand extends Command
 {
-    protected $signature = 'committee:complete-all';
-
-    protected $description = 'Completa todas as avaliações dos comitês';
-
     public function handle(): void
     {
         $user = User::role(UserRoles::ADMIN->value)->firstOrFail();
-        $projectsInCommittee = Project::where('stage', ProjectStage::COMMITTEE)
-            ->whereNull('committee_score')
-            ->get();
+        $query = Project::where('stage', ProjectStage::COMMITTEE)
+            ->whereNull('committee_score');
+        $number = (int) $this->argument('number');
+        if ($number > 0) {
+            $query->limit($this->argument('number'));
+        }
+        $projectsInCommittee = $query->get();
 
         $committeeReviewService = app(CommitteeReviewService::class);
         foreach ($projectsInCommittee as $projectInCommittee) {

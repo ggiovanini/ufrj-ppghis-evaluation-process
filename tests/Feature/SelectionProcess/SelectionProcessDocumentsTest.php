@@ -40,7 +40,11 @@ test('administrators can view documents from their current selection process', f
     ]);
     DB::table('projects')->where('id', $projectWithoutDocument->id)->update([
         'selection_process_id' => $selection->id,
-        'content' => json_encode(['documents' => []]),
+        'content' => json_encode(['documents' => [[
+            'name' => 'arquivo-ausente.pdf',
+            'path' => null,
+            'url' => null,
+        ]]]),
     ]);
     Storage::disk('public')->put('selecao-ppghis-2027/projeto.pdf', 'used');
     Storage::disk('public')->put('selecao-ppghis-2027/orphan.pdf', 'unused');
@@ -56,7 +60,8 @@ test('administrators can view documents from their current selection process', f
             ->has('projects', 2)
             ->where('projects.0.documents.0.name', 'projeto.pdf')
             ->where('projects.0.documents.0.url', 'http://localhost/storage/selecao-ppghis-2027/projeto.pdf')
-            ->has('projects.1.documents', 0)
+            ->where('projects.1.documents.0.name', 'arquivo-ausente.pdf')
+            ->where('projects.1.documents.0.url', null)
             ->has('storageDocuments', 3)
             ->where('storageDocuments', function ($documents): bool {
                 $documentsByName = collect($documents)->keyBy('name');

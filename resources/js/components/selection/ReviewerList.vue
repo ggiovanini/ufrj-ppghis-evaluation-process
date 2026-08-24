@@ -10,6 +10,7 @@ import {
     Trash2,
     Settings2,
     ExternalLink,
+    Asterisk,
 } from '@lucide/vue';
 import { ref, computed } from 'vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
@@ -47,6 +48,7 @@ import type { SelectionProcess } from '@/types/selection-process';
 const props = defineProps<{
     selection: SelectionProcess;
     reviewers: Reviewer[];
+    readOnly?: boolean;
 }>();
 
 const search = ref('');
@@ -204,7 +206,7 @@ const isFullyCompleted = computed(() => {
                     </button>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" v-if="!readOnly">
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
                             <Button variant="secondary">
@@ -250,7 +252,12 @@ const isFullyCompleted = computed(() => {
                             >
                             <TableHead class="text-center">Progresso</TableHead>
                             <TableHead class="text-center">Status</TableHead>
-                            <TableHead class="pe-4 text-right"></TableHead>
+                            <TableHead
+                                class="flex items-center justify-end pe-4"
+                                v-if="!readOnly"
+                            >
+                                <Asterisk class="h-4 w-4" />
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -310,7 +317,7 @@ const isFullyCompleted = computed(() => {
                                     <template v-else> Pendente </template>
                                 </Badge>
                             </TableCell>
-                            <TableCell class="pe-4 text-right">
+                            <TableCell class="pe-4 text-right" v-if="!readOnly">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
                                         <Button variant="ghost" size="icon">

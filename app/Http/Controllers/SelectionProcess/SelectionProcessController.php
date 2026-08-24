@@ -18,6 +18,7 @@ use App\Domain\SelectionProcess\Services\ResultService;
 use App\Domain\SelectionProcess\Services\ReviewAssigmentService;
 use App\Domain\SelectionProcess\Services\WrittenExamService;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
+use App\Domain\Shared\Types\UserRoles;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Projects\ProjectsImportRequest;
 use App\Http\Resources\ProjectResource;
@@ -67,7 +68,7 @@ class SelectionProcessController extends Controller
 
     public function show(Request $request, SelectionProcess $selection)
     {
-        Gate::authorize('projects.import');
+        abort_unless(Gate::allows('projects.manage') || Gate::allows('committee.evaluate'), 403);
 
         if ($selection->projects->count() <= 0) {
             return to_route('selection.prepare', $selection);
@@ -86,15 +87,29 @@ class SelectionProcessController extends Controller
             $projects->where('homologation_status', ProjectHomologationStatus::APPROVED);
         }
 
+        $user = auth()->user();
         if ($selection->phase === SelectionProcessPhases::WRITTEN_EXAM) {
-            $projects = $projects
-                ->where('modality', ProjectModality::MASTER)
-                ->whereNotNull('review_score')
-                ->whereNot('stage', ProjectStage::REJECTED);
+            if ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE)) {
+                $projects->where('modality', ProjectModality::DOCTORATE)
+                    ->whereNotNull('review_score')
+                    ->whereNot('stage', ProjectStage::REJECTED);
+            } else {
+                $projects
+                    ->where('modality', ProjectModality::MASTER)
+                    ->whereNotNull('review_score')
+                    ->whereNot('stage', ProjectStage::REJECTED);
+            }
+        } else {
+            if ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE)) {
+                $projects->where('modality', ProjectModality::DOCTORATE);
+            }
+            if ($user->hasRole(UserRoles::MASTER_COMMITTEE)) {
+                $projects->where('modality', ProjectModality::MASTER);
+            }
         }
 
         if ($selection->phase === SelectionProcessPhases::COMMITTEE) {
-            $projects = $projects
+            $projects
                 ->whereNotNull('review_score')
                 ->whereNot('stage', ProjectStage::REJECTED);
         }

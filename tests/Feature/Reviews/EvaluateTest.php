@@ -21,6 +21,8 @@ beforeEach(function () {
     $this->reviewerRole = Role::firstOrCreate(['name' => 'reviewer', 'guard_name' => 'web']);
     Permission::firstOrCreate(['name' => 'review.view-own', 'guard_name' => 'web']);
     $this->reviewerRole->givePermissionTo('review.view-own');
+    Role::firstOrCreate(['name' => 'master_committee', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'committee.evaluate', 'guard_name' => 'web']);
 
     $this->reviewer = User::factory()->create();
     $this->reviewer->assignRole($this->reviewerRole);
@@ -125,6 +127,16 @@ test('unauthorized user cannot see evaluate page', function () {
     $this->actingAs($user)
         ->get(route('selection.evaluate', $this->selection))
         ->assertStatus(403);
+});
+
+test('committee cannot access the reviewer evaluation page', function () {
+    $committee = User::factory()->create();
+    $committee->assignRole('master_committee');
+    $committee->givePermissionTo('committee.evaluate');
+
+    $this->actingAs($committee)
+        ->get(route('selection.evaluate', $this->selection))
+        ->assertForbidden();
 });
 
 test('reviewer can save evaluation as draft', function () {

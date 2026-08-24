@@ -46,6 +46,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import ProjectColumnTitle from '@/pages/projects/partials/ProjectColumnTitle.vue';
 import selectionRoutes from '@/routes/selection';
 import type { DataFilters, DataPagination } from '@/types/pagination';
 import type { Project } from '@/types/projects';
@@ -59,6 +60,7 @@ const props = defineProps<{
     projects: DataPagination<Project>;
     filters?: DataFilters;
     stats: SelectionProcessStats;
+    readOnly?: boolean;
 }>();
 
 const search = ref(props.filters?.search || '');
@@ -212,7 +214,7 @@ const insertScore = (project: Project) => {
                         <X class="h-4 w-4" />
                     </button>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" v-if="!readOnly">
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
                             <Button variant="secondary">
@@ -268,10 +270,11 @@ const insertScore = (project: Project) => {
                             <TableHead class="text-center">NMA</TableHead>
                             <TableHead class="text-center">NP</TableHead>
                             <TableHead class="text-center whitespace-nowrap"
-                                >Nota da comissão</TableHead
+                                >Prova oral</TableHead
                             >
                             <TableHead
                                 class="flex items-center justify-end pe-4"
+                                v-if="!readOnly"
                             >
                                 <Asterisk class="h-4 w-4" />
                             </TableHead>
@@ -286,16 +289,7 @@ const insertScore = (project: Project) => {
                                 class="ps-4 font-medium"
                                 @click="navigateToShowProject(project.id)"
                             >
-                                <div class="flex flex-col gap-1">
-                                    <span>{{ project.candidate_name }}</span>
-                                    <span
-                                        class="line-clamp-1 text-xs font-normal text-muted-foreground"
-                                        >{{ project.title }}</span
-                                    >
-                                    <Badge variant="secondary">
-                                        {{ project.modality_label }}
-                                    </Badge>
-                                </div>
+                                <ProjectColumnTitle :project="project" />
                             </TableCell>
                             <TableCell class="pe-4 text-center">
                                 <Badge
@@ -361,7 +355,7 @@ const insertScore = (project: Project) => {
                                     </Badge>
                                 </div>
                             </TableCell>
-                            <TableCell class="text-right">
+                            <TableCell class="text-right" v-if="!readOnly">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
                                         <Button

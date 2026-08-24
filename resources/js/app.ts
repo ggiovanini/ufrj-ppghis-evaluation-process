@@ -23,7 +23,9 @@ createInertiaApp({
                 return [AppLayout, TeamLayout];
             case name.startsWith('selection/') ||
                 name.startsWith('projects/') ||
-                name.startsWith('reviews/'):
+                name.startsWith('reviews/') ||
+                name.startsWith('committee/') ||
+                name.startsWith('written-exam/'):
                 return [AppLayout, SelectionProcessLayout];
             default:
                 return AppLayout;

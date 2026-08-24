@@ -69,6 +69,7 @@ const props = defineProps<{
     stats: SelectionProcessStats;
     phase: SelectionProcessPhase;
     selection?: SelectionProcess;
+    readOnly?: boolean;
 }>();
 </script>
 
@@ -151,7 +152,7 @@ const props = defineProps<{
                         variant="ghost"
                         class="-mr-2 -mb-2"
                         @click="downloadReportHomologation"
-                        v-if="selection"
+                        v-if="selection && !readOnly"
                     >
                         <DownloadIcon class="h-2 w-2" />
                     </Button>
@@ -216,7 +217,7 @@ const props = defineProps<{
                         variant="ghost"
                         class="-mr-2 -mb-2"
                         @click="downloadReportDistribution"
-                        v-if="selection"
+                        v-if="selection && !readOnly"
                     >
                         <DownloadIcon class="h-2 w-2" />
                     </Button>
@@ -311,7 +312,7 @@ const props = defineProps<{
                         variant="ghost"
                         class="-mr-2 -mb-2"
                         @click="downloadReportReview"
-                        v-if="selection"
+                        v-if="selection && !readOnly"
                     >
                         <DownloadIcon class="h-2 w-2" />
                     </Button>
@@ -389,7 +390,7 @@ const props = defineProps<{
                         variant="ghost"
                         class="-mr-2 -mb-2"
                         @click="downloadReportWrittenExam"
-                        v-if="selection"
+                        v-if="selection && !readOnly"
                     >
                         <DownloadIcon class="h-2 w-2" />
                     </Button>
@@ -404,7 +405,11 @@ const props = defineProps<{
             :class="[
                 phase === 'COMMITTEE' ? 'outline-4 outline-foreground/40' : '',
             ]"
-            v-if="['COMMITTEE', 'RESULTS', 'FINISHED'].includes(phase)"
+            v-if="
+                ['WRITTEN_EXAM', 'COMMITTEE', 'RESULTS', 'FINISHED'].includes(
+                    phase,
+                )
+            "
         >
             <CardHeader
                 class="flex flex-row items-center justify-between space-y-0 pb-2"
@@ -463,7 +468,7 @@ const props = defineProps<{
                         variant="ghost"
                         class="-mr-2 -mb-2"
                         @click="downloadReportCommittee"
-                        v-if="selection"
+                        v-if="selection && !readOnly"
                     >
                         <DownloadIcon class="h-2 w-2" />
                     </Button>

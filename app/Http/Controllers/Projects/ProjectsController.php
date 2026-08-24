@@ -92,11 +92,17 @@ class ProjectsController extends Controller
         $canEvaluateCommittee = $user->can('committee.evaluate')
             && (($user->hasRole(UserRoles::MASTER_COMMITTEE->value) && $project->modality === ProjectModality::MASTER)
                 || ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE->value) && $project->modality === ProjectModality::DOCTORATE));
+        $canEvaluateWrittenExam = $user->can('committee.evaluate')
+            && $user->hasRole(UserRoles::MASTER_COMMITTEE->value)
+            && $selection->phase === SelectionProcessPhases::WRITTEN_EXAM
+            && $project->modality === ProjectModality::MASTER
+            && $project->stage === ProjectStage::WRITTEN_EXAM;
         $canManageHomologation = $selection->phase === SelectionProcessPhases::HOMOLOGATION
             && $user->can('projects.manage');
         if (! $user->hasRole(UserRoles::ADMIN->value)
             && ! $canManageHomologation
             && ! $canEvaluateCommittee
+            && ! $canEvaluateWrittenExam
             && ! $project->reviewAssignments()->where('user_id', $user->id)->exists()
         ) {
             abort(403);
@@ -192,18 +198,27 @@ class ProjectsController extends Controller
         SelectionProcess $selection,
         Project $project,
     ): RedirectResponse {
-        Gate::authorize('projects.manage');
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $isMasterCommittee = $user->can('committee.evaluate')
+            && $user->hasRole(UserRoles::MASTER_COMMITTEE->value);
+
+        abort_unless($user->can('projects.manage') || $isMasterCommittee, 403);
 
         if ($project->selection_process_id !== $selection->id) {
             abort(403);
         }
 
+        if (! $user->can('projects.manage')) {
+            abort_unless($selection->phase === SelectionProcessPhases::WRITTEN_EXAM, 409);
+            abort_unless($project->stage === ProjectStage::WRITTEN_EXAM, 409);
+            abort_unless($project->modality === ProjectModality::MASTER, 403);
+        }
+
         $validated = $request->validate([
             'written_exam_score' => ['required', 'string'],
         ]);
-
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
 
         $writtenExamService->update(
             $project,
@@ -318,6 +333,7 @@ class ProjectsController extends Controller
                         'comments' => null,
                         'user_id' => $user_id,
                         'submitted_at' => null,
+                        'passed' => null,
                     ]);
                     $project->update(['committee_score' => null]);
                 });

@@ -73,11 +73,13 @@ class FrontIntegrationService
             ->whereHas('writtenExam', fn ($query) => $query->whereNotNull('score')->where('passed', false))
             ->where('modality', ProjectModality::MASTER->value)
             ->count();
-        $committeeEvaluationsTotal = $committeeEvaluations->count();
-        $committeeEvaluationsCompleted = (clone $committeeEvaluations)
-            ->whereNotNull('committee_score')
+        $committeeEvaluationsTotal = (clone $approvedProjects)
+            ->whereHas('committeeEvaluation')
             ->count();
-        $finalResults = (clone $committeeEvaluations)->whereHas('finalResults');
+        $committeeEvaluationsCompleted = (clone $approvedProjects)
+            ->whereHas('committeeEvaluation', fn ($query) => $query->whereNotNull('score'))
+            ->count();
+        $finalResults = (clone $approvedProjects)->whereHas('finalResults');
 
         return [
             'total_projects' => $projects->count(),

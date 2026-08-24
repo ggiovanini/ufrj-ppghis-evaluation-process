@@ -52,6 +52,7 @@ class SelectionProcessDocumentsController extends Controller
                         'name' => $document['name'] ?? $document['filename'] ?? 'Arquivo',
                         'label' => $document['label'] ?? null,
                         'filename' => $document['filename'] ?? null,
+                        'path' => $document['path'] ?? null,
                         'url' => $document['url']
                             ?? (isset($document['path'])
                                 ? Storage::disk('public')->url($document['path'])

@@ -44,17 +44,18 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import ProjectColumnTitle from '@/pages/projects/partials/ProjectColumnTitle.vue';
 import selectionRoutes from '@/routes/selection';
 import type { DataFilters, DataPagination } from '@/types/pagination';
 import type { Project } from '@/types/projects';
 import type { SelectionProcess } from '@/types/selection-process';
-import ProjectColumnTitle from '@/pages/projects/partials/ProjectColumnTitle.vue';
 
 const props = defineProps<{
     selection: SelectionProcess;
     projects: DataPagination<Project>;
     filters?: DataFilters;
     pendingProjects: number;
+    readOnly?: boolean;
 }>();
 
 const search = ref(props.filters?.search || '');
@@ -218,7 +219,7 @@ const confirmFinalize = () => {
                         <X class="h-4 w-4" />
                     </button>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" v-if="!readOnly">
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
                             <Button variant="secondary" size="sm">
@@ -371,6 +372,7 @@ const confirmFinalize = () => {
                             </TableHead>
                             <TableHead
                                 class="flex items-center justify-end pe-4"
+                                v-if="!readOnly"
                             >
                                 <Asterisk class="h-4 w-4" />
                             </TableHead>
@@ -433,7 +435,7 @@ const confirmFinalize = () => {
                                     >—</span
                                 >
                             </TableCell>
-                            <TableCell>
+                            <TableCell v-if="!readOnly">
                                 <div class="flex justify-end gap-2">
                                     <Button
                                         size="sm"

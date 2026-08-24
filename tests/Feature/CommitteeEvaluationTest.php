@@ -41,10 +41,44 @@ test('master committee can only see master projects in the evaluation page', fun
     ]);
 
     $this->actingAs($committee)
-        ->get(route('selection.evaluate', $selection))
+        ->get(route('selection.committee', $selection))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
+            ->component('committee/Index')
             ->where('projects.data.0.id', $masterProject->id)
+            ->has('projects.data', 1)
+        );
+});
+
+test('doctorate committee can only see doctorate projects in the evaluation page', function () {
+    $committee = User::factory()->create();
+    Role::create(['name' => UserRoles::DOCTORATE_COMMITTEE->value, 'guard_name' => 'web'])
+        ->givePermissionTo('committee.evaluate');
+    $committee->assignRole(UserRoles::DOCTORATE_COMMITTEE->value);
+    $selection = SelectionProcess::factory()->create();
+    $doctorateProject = Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'stage' => ProjectStage::FINISHED,
+        'modality' => ProjectModality::DOCTORATE,
+    ]);
+    $doctorateProject->committeeEvaluation()->create([
+        'score' => 800,
+        'passed' => true,
+        'comments' => 'Avaliação concluída.',
+        'user_id' => $committee->id,
+        'submitted_at' => now(),
+    ]);
+    Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'stage' => ProjectStage::COMMITTEE,
+        'modality' => ProjectModality::MASTER,
+    ]);
+
+    $this->actingAs($committee)
+        ->get(route('selection.committee', $selection))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('projects.data.0.id', $doctorateProject->id)
             ->has('projects.data', 1)
         );
 });

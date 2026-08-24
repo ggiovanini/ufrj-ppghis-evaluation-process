@@ -5,9 +5,16 @@ import { ref } from 'vue';
 import CommitteeScoreModal from '@/components/selection/CommitteeScoreModal.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { authCan } from '@/types';
 import type { Project, ProjectWithDetail } from '@/types/projects';
+import { Separator } from '@/components/ui/separator';
 
 const props = defineProps<{
     project: Project | ProjectWithDetail;
@@ -30,19 +37,22 @@ const editScore = () => {
 
 <template>
     <Card
-        v-if="canEditScore && ['committee', 'finished'].includes(project.stage)"
+        v-if="
+            canEditScore &&
+            ['whitten_exam', 'committee', 'finished'].includes(project.stage)
+        "
     >
         <CardHeader
             class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
             <CardTitle class="flex flex-row items-center gap-2 text-base">
                 <PenTool class="h-4 w-4" />
-                Avaliação do comitê
+                Prova oral
             </CardTitle>
             <Button
                 v-if="
+                    project.committee_score &&
                     project.stage === 'committee' &&
-                    props.selectionPhase === 'COMMITTEE' &&
                     canEditScore
                 "
                 variant="ghost"
@@ -64,7 +74,6 @@ const editScore = () => {
                 v-if="
                     !project.committee_score &&
                     project.stage === 'committee' &&
-                    props.selectionPhase === 'COMMITTEE' &&
                     canEditScore
                 "
                 class="mt-4"
@@ -73,6 +82,15 @@ const editScore = () => {
                     Inserir Nota
                 </Button>
             </div>
+            <template v-if="project.committee_evaluation.comments">
+                <Separator class="my-2" />
+                <p class="text-sm">
+                    Justificativa:
+                    <span class="text-muted-foreground italic">
+                        "{{ project.committee_evaluation.comments }}"
+                    </span>
+                </p>
+            </template>
         </CardContent>
     </Card>
 

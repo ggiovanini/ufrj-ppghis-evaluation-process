@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, setLayoutProps } from '@inertiajs/vue3';
+import { Head, Link, router, setLayoutProps, usePage } from '@inertiajs/vue3';
 import { CheckCircle2, Download, MoreHorizontal } from '@lucide/vue';
 import Heading from '@/components/Heading.vue';
 import CommitteeList from '@/components/selection/CommitteeList.vue';
@@ -27,6 +27,7 @@ import type {
     SelectionProcess,
     SelectionProcessPhaseObject,
 } from '@/types/selection-process';
+import { authCan } from '@/types';
 
 const props = defineProps<{
     selection: {
@@ -78,6 +79,13 @@ setLayoutProps({
         },
     ],
 });
+
+const page = usePage();
+const { auth } = page.props;
+
+const isReadOnly = (): boolean => {
+    return !authCan(auth, 'projects.manage');
+};
 </script>
 
 <template>
@@ -87,6 +95,7 @@ setLayoutProps({
         :stats="stats"
         :phase="selection.data.phase"
         :selection="selection.data"
+        :read-only="isReadOnly()"
     />
 
     <template v-if="selection.data.phase === 'HOMOLOGATION'">
@@ -100,6 +109,7 @@ setLayoutProps({
             :projects="projects"
             :filters="filters"
             :pending-projects="homologationPendingProjects"
+            :read-only="isReadOnly()"
         />
     </template>
 
@@ -115,6 +125,7 @@ setLayoutProps({
             :reviewers="reviewers"
             :filters="filters"
             :stats="stats"
+            :read-only="isReadOnly()"
         />
     </template>
 
@@ -124,7 +135,10 @@ setLayoutProps({
             description="Verifique abaixo como esta o desempenho dos avaliadores"
             class="mt-6"
         >
-            <div class="flex flex-1 flex-row items-center justify-end gap-2">
+            <div
+                class="flex flex-1 flex-row items-center justify-end gap-2"
+                v-if="!isReadOnly()"
+            >
                 <Button variant="outline" as-child>
                     <Link
                         :href="
@@ -137,7 +151,11 @@ setLayoutProps({
                 </Button>
             </div>
         </Heading>
-        <ReviewerList :selection="selection.data" :reviewers="reviewers" />
+        <ReviewerList
+            :selection="selection.data"
+            :reviewers="reviewers"
+            :read-only="isReadOnly()"
+        />
     </template>
 
     <template v-if="selection.data.phase === 'WRITTEN_EXAM'">
@@ -146,7 +164,10 @@ setLayoutProps({
             description="Esse é o momento que você vai informar as notas das provas do mestrado"
             class="mt-6"
         >
-            <div class="flex flex-1 flex-row items-center justify-end gap-2">
+            <div
+                class="flex flex-1 flex-row items-center justify-end gap-2"
+                v-if="!isReadOnly()"
+            >
                 <Button variant="outline" as-child>
                     <Link
                         :href="
@@ -165,6 +186,7 @@ setLayoutProps({
             :reviewers="reviewers"
             :filters="filters"
             :stats="stats"
+            :read-only="isReadOnly()"
         />
     </template>
 
@@ -174,7 +196,10 @@ setLayoutProps({
             description="Acompanhe como está a avaliação dos comitês"
             class="mt-6"
         >
-            <div class="flex flex-1 flex-row items-center justify-end gap-2">
+            <div
+                class="flex flex-1 flex-row items-center justify-end gap-2"
+                v-if="!isReadOnly()"
+            >
                 <Button variant="outline" as-child>
                     <Link
                         :href="
@@ -192,6 +217,7 @@ setLayoutProps({
             :projects="projects"
             :filters="filters"
             :stats="stats"
+            :read-only="isReadOnly()"
         />
     </template>
 
@@ -243,6 +269,7 @@ setLayoutProps({
             :projects="projects"
             :filters="filters"
             :stats="stats"
+            :read-only="isReadOnly"
         />
     </template>
 </template>

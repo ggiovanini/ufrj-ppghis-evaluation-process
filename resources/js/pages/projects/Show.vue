@@ -109,7 +109,7 @@ const breadcrumbs = computed(() => {
     if (authCan(auth, 'committee.evaluate')) {
         result.push({
             title: props.selection.data.name,
-            href: routeSelection.evaluate(props.selection.data.id).url,
+            href: routeSelection.committee(props.selection.data.id).url,
         });
     }
 
