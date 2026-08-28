@@ -75,6 +75,11 @@ class Project extends Model
         return $this->hasOne(FinalResult::class);
     }
 
+    public function documentVersions(): HasMany
+    {
+        return $this->hasMany(ProjectDocumentVersion::class);
+    }
+
     public function reject(): void
     {
         if ($this->stage !== ProjectStage::REJECTED) {

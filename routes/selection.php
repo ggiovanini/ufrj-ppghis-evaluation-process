@@ -59,6 +59,7 @@ Route::middleware(['auth'])
                 Route::get('/committee-report', [ProjectsController::class, 'committeeReport'])->name('.committee.report');
                 Route::get('/final-result-report', [ProjectsController::class, 'finalResultReport'])->name('.final-result.report');
                 Route::get('/{project}', [ProjectsController::class, 'show'])->name('.show');
+                Route::post('/{project}/documents', [ProjectsController::class, 'uploadDocument'])->name('.documents.upload');
                 Route::patch('/{project}/homologation', [SelectionProcessController::class, 'updateHomologation'])->name('.homologation.update');
                 Route::get('/{project}/edit', [ProjectsController::class, 'edit'])->name('.edit');
                 Route::patch('/{project}', [ProjectsController::class, 'update'])->name('.update');

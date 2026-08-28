@@ -25,6 +25,7 @@ export type ProjectHomologationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Project {
     id: number;
+    selection_process_id?: number;
     register_id: string;
     submitted_at: string | null;
     potential_duplicate: boolean;
@@ -68,6 +69,7 @@ export interface Project {
 
 export interface ProjectWithDetail {
     id: number;
+    selection_process_id?: number;
     register_id: string;
     submitted_at: string | null;
     potential_duplicate: boolean;
@@ -100,6 +102,17 @@ export interface ProjectWithDetail {
             url?: string;
         }>;
     };
+    document_versions?: Array<{
+        id: number;
+        label: string;
+        name: string;
+        url: string;
+        version: number;
+        action: string;
+        size?: number;
+        created_at: string;
+        uploaded_by?: string;
+    }>;
     review_assignments: ResourceCollection<ReviewAssignment>;
     written_exam: any | null;
     committee_evaluation: any | null;

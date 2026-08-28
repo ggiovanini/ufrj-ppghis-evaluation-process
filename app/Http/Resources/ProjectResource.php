@@ -6,6 +6,7 @@ use App\Domain\Projects\Types\ProjectScore;
 use App\Domain\Review\Types\ReviewStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectResource extends JsonResource
 {
@@ -13,6 +14,7 @@ class ProjectResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'selection_process_id' => $this->selection_process_id,
             'candidate_name' => $this->candidate_name,
             'register_id' => $this->register_id,
             'submitted_at' => $this->submitted_at,
@@ -32,6 +34,19 @@ class ProjectResource extends JsonResource
             'has_indication' => ! empty($this->indication),
             'original_content' => $this->original_content,
             'content' => $this->content,
+            'document_versions' => $this->whenLoaded('documentVersions', fn () => $this->documentVersions->map(fn ($version): array => [
+                'id' => $version->id,
+                'label' => $version->label,
+                'name' => $version->name,
+                'filename' => $version->filename,
+                'mime_type' => $version->mime_type,
+                'size' => $version->size,
+                'version' => $version->version,
+                'action' => $version->action,
+                'created_at' => $version->created_at,
+                'uploaded_by' => $version->user?->name,
+                'url' => Storage::disk('public')->url($version->path),
+            ])),
             'homologation_status' => $this->homologation_status,
             'homologation_status_label' => $this->homologation_status?->label(),
             'homologation_reason' => $this->homologation_reason,

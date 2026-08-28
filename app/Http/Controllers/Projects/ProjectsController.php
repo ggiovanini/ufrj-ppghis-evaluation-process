@@ -18,15 +18,19 @@ use App\Exports\HomologationReportExport;
 use App\Exports\ReviewReportExport;
 use App\Exports\WrittenExamReportExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Projects\ProjectDocumentUploadRequest;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\SelectionProcessResource;
 use App\Http\Resources\UserResource;
 use App\Models\Project;
+use App\Models\ProjectDocumentVersion;
 use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -120,6 +124,7 @@ class ProjectsController extends Controller
             'writtenExam',
             'committeeEvaluation',
             'finalResults',
+            'documentVersions.user',
         ]);
 
         return Inertia::render('projects/Show', [
@@ -128,6 +133,62 @@ class ProjectsController extends Controller
             'reviewScoreOptions' => FrontIntegrationService::reviewScoreOptions(),
             'phases' => FrontIntegrationService::selectionProcessPhases(),
         ]);
+    }
+
+    public function uploadDocument(ProjectDocumentUploadRequest $request, SelectionProcess $selection, Project $project): RedirectResponse
+    {
+        abort_unless($project->selection_process_id === $selection->id, 403);
+
+        $validated = $request->validated();
+        $documents = data_get($project->content, 'documents', []);
+        $rawDocumentIndex = $validated['document_index'] ?? null;
+        $documentIndex = $rawDocumentIndex !== null && $rawDocumentIndex !== ''
+            ? (int) $rawDocumentIndex
+            : null;
+        $oldDocument = $documentIndex !== null ? ($documents[$documentIndex] ?? null) : null;
+        $label = $validated['label'];
+        $version = ProjectDocumentVersion::where('project_id', $project->id)->where('label', $label)->max('version') + 1;
+
+        if (is_array($oldDocument) && isset($oldDocument['path'])) {
+            ProjectDocumentVersion::create([
+                'project_id' => $project->id,
+                'label' => $oldDocument['label'] ?? $label,
+                'name' => $oldDocument['name'] ?? $oldDocument['filename'] ?? 'Arquivo',
+                'filename' => $oldDocument['filename'] ?? $oldDocument['name'] ?? 'arquivo',
+                'path' => $oldDocument['path'],
+                'version' => $version,
+                'action' => 'replaced',
+            ]);
+            $version++;
+        }
+
+        $file = $request->file('file');
+        $filename = Str::uuid()->toString().'.'.$file->extension();
+        $path = $file->storeAs('projects/'.$project->id.'/documents', $filename, 'public');
+        ProjectDocumentVersion::create([
+            'project_id' => $project->id,
+            'user_id' => $request->user()->id,
+            'label' => $label,
+            'name' => $file->getClientOriginalName(),
+            'filename' => $filename,
+            'path' => $path,
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'version' => $version,
+            'action' => is_array($oldDocument) ? 'replacement' : 'upload',
+        ]);
+
+        $newDocument = ['label' => $label, 'name' => $file->getClientOriginalName(), 'filename' => $filename, 'ext' => $file->extension(), 'size' => $file->getSize(), 'path' => $path, 'url' => Storage::disk('public')->url($path)];
+        if ($documentIndex !== null && array_key_exists($documentIndex, $documents)) {
+            $documents[$documentIndex] = $newDocument;
+        } else {
+            $documents[] = $newDocument;
+        }
+        $content = $project->content ?? [];
+        $content['documents'] = array_values($documents);
+        $project->update(['content' => $content]);
+
+        return back();
     }
 
     public function edit(SelectionProcess $selection, Project $project) {}
