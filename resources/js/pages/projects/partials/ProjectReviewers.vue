@@ -148,7 +148,7 @@ const openViewReviewModal = (assignment: ReviewAssignment) => {
                 </div>
             </template>
         </CardContent>
-        <template v-if="!authCan(auth, 'users.manage')">
+        <template v-if="authCan(auth, 'review.evaluate')">
             <CardFooter class="z-10" v-if="currentAssignment && !isSubmitted">
                 <Button
                     class="w-full"
