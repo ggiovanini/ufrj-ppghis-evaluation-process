@@ -193,6 +193,7 @@ const assignReviewer = () => {
         {
             project_id: selectedProject.value.id,
             user_id: selectedReviewerId.value,
+            old_user_id: selectedAssignment.value?.user_id ?? null,
             chosen_by_candidate: isIndicatedSlot.value,
         },
         {

@@ -12,7 +12,9 @@ use App\Models\Project;
 use App\Models\SelectionProcess;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class ReviewAssignmentController extends Controller
 {
@@ -23,6 +25,7 @@ class ReviewAssignmentController extends Controller
         $validated = $request->validate([
             'project_id' => ['required', 'exists:projects,id'],
             'user_id' => ['required', 'exists:users,id'],
+            'old_user_id' => ['nullable', 'exists:users,id'],
             'chosen_by_candidate' => ['boolean'],
         ]);
 
@@ -41,12 +44,31 @@ class ReviewAssignmentController extends Controller
             abort(403);
         }
 
-        $reviewService = new ReviewService($selection);
-        $reviewService->createReviewAssignment(
-            $project,
-            $user,
-            $validated['chosen_by_candidate'] ?? false
-        );
+        $oldUserId = isset($validated['old_user_id']) && $validated['old_user_id'] ? (int) $validated['old_user_id'] : null;
+
+        $alreadyAssigned = $project->reviewAssignments()
+            ->where('user_id', $user->id)
+            ->when($oldUserId, fn ($query) => $query->where('user_id', '!=', $oldUserId))
+            ->exists();
+
+        if ($alreadyAssigned) {
+            throw ValidationException::withMessages([
+                'user_id' => 'Este avaliador já está atribuído a este projeto.',
+            ]);
+        }
+
+        DB::transaction(function () use ($project, $user, $oldUserId, $validated, $selection): void {
+            if ($oldUserId && $oldUserId !== $user->id) {
+                $project->reviewAssignments()->where('user_id', $oldUserId)->delete();
+            }
+
+            $reviewService = new ReviewService($selection);
+            $reviewService->createReviewAssignment(
+                $project,
+                $user,
+                $validated['chosen_by_candidate'] ?? false
+            );
+        });
 
         return back();
     }

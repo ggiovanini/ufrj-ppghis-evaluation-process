@@ -402,7 +402,7 @@ class ProjectsController extends Controller
             return back();
         }
 
-        // $selection->projects()->delete();
+        $selection->projects()->delete();
 
         return back();
     }

@@ -210,7 +210,130 @@ test('cannot finalize distribution phase if a project has fewer than 3 reviewers
     $this->assertEquals(SelectionProcessPhases::IMPORT, $this->selection->refresh()->phase);
 });
 
+test('can replace a regular reviewer with another reviewer', function () {
+    $reviewer2 = User::factory()->create();
+    $reviewer2->assignRole($this->reviewerRole);
+    $reviewer3 = User::factory()->create();
+    $reviewer3->assignRole($this->reviewerRole);
+    $newReviewer = User::factory()->create();
+    $newReviewer->assignRole($this->reviewerRole);
+
+    $this->project->reviewAssignments()->create([
+        'user_id' => $this->reviewer->id,
+        'chosen_by_candidate' => false,
+    ]);
+    $this->project->reviewAssignments()->create([
+        'user_id' => $reviewer2->id,
+        'chosen_by_candidate' => false,
+    ]);
+    $this->project->reviewAssignments()->create([
+        'user_id' => $reviewer3->id,
+        'chosen_by_candidate' => false,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('selection.assignments.store', $this->selection), [
+            'project_id' => $this->project->id,
+            'user_id' => $newReviewer->id,
+            'old_user_id' => $this->reviewer->id,
+            'chosen_by_candidate' => false,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('review_assignments', [
+        'project_id' => $this->project->id,
+        'user_id' => $this->reviewer->id,
+    ]);
+
+    $this->assertDatabaseHas('review_assignments', [
+        'project_id' => $this->project->id,
+        'user_id' => $newReviewer->id,
+        'chosen_by_candidate' => false,
+    ]);
+
+    $this->assertCount(3, $this->project->refresh()->reviewAssignments);
+});
+
+test('can replace an indicated reviewer with another indicated reviewer', function () {
+    $reviewer2 = User::factory()->create();
+    $reviewer2->assignRole($this->reviewerRole);
+    $reviewer3 = User::factory()->create();
+    $reviewer3->assignRole($this->reviewerRole);
+    $newIndicatedReviewer = User::factory()->create();
+    $newIndicatedReviewer->assignRole($this->reviewerRole);
+
+    $this->project->reviewAssignments()->create([
+        'user_id' => $this->reviewer->id,
+        'chosen_by_candidate' => true,
+    ]);
+    $this->project->reviewAssignments()->create([
+        'user_id' => $reviewer2->id,
+        'chosen_by_candidate' => false,
+    ]);
+    $this->project->reviewAssignments()->create([
+        'user_id' => $reviewer3->id,
+        'chosen_by_candidate' => false,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('selection.assignments.store', $this->selection), [
+            'project_id' => $this->project->id,
+            'user_id' => $newIndicatedReviewer->id,
+            'old_user_id' => $this->reviewer->id,
+            'chosen_by_candidate' => true,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('review_assignments', [
+        'project_id' => $this->project->id,
+        'user_id' => $this->reviewer->id,
+    ]);
+
+    $this->assertDatabaseHas('review_assignments', [
+        'project_id' => $this->project->id,
+        'user_id' => $newIndicatedReviewer->id,
+        'chosen_by_candidate' => true,
+    ]);
+
+    $this->assertCount(3, $this->project->refresh()->reviewAssignments);
+    $this->assertCount(1, $this->project->reviewAssignments()->where('chosen_by_candidate', true)->get());
+});
+
+test('cannot assign reviewer already assigned to the project in another slot', function () {
+    $reviewer2 = User::factory()->create();
+    $reviewer2->assignRole($this->reviewerRole);
+
+    $this->project->reviewAssignments()->create([
+        'user_id' => $this->reviewer->id,
+        'chosen_by_candidate' => true,
+    ]);
+    $this->project->reviewAssignments()->create([
+        'user_id' => $reviewer2->id,
+        'chosen_by_candidate' => false,
+    ]);
+
+    // Tentar substituir reviewer 1 por reviewer 2 (que já está alocado no slot 2)
+    $this->actingAs($this->admin)
+        ->post(route('selection.assignments.store', $this->selection), [
+            'project_id' => $this->project->id,
+            'user_id' => $reviewer2->id,
+            'old_user_id' => $this->reviewer->id,
+            'chosen_by_candidate' => false,
+        ])
+        ->assertSessionHasErrors(['user_id']);
+
+    // Tentar adicionar reviewer 2 a um novo slot
+    $this->actingAs($this->admin)
+        ->post(route('selection.assignments.store', $this->selection), [
+            'project_id' => $this->project->id,
+            'user_id' => $reviewer2->id,
+            'chosen_by_candidate' => false,
+        ])
+        ->assertSessionHasErrors(['user_id']);
+});
+
 test('can finalize distribution phase when all projects have at least 3 reviewers', function () {
+    $this->selection->update(['phase' => SelectionProcessPhases::DISTRIBUTION]);
     // Create 3 reviewers
     $reviewers = User::factory(3)->create();
     foreach ($reviewers as $reviewer) {
