@@ -86,7 +86,7 @@ const insertScore = (project: Project): void => {
                                         <Button variant="ghost" class="h-8 w-8 p-0"><MoreHorizontal class="h-4 w-4" /></Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem @click="insertScore(project)">
+                                        <DropdownMenuItem @click="insertScore(project)" :disabled="selection.phase !== 'WRITTEN_EXAM'">
                                             <Pencil class="mr-1 h-4 w-4" />
                                             {{ project.written_exam_score !== null ? 'Editar nota da prova' : 'Inserir nota da prova' }}
                                         </DropdownMenuItem>

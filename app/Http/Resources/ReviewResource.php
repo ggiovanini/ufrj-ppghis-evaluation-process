@@ -12,10 +12,10 @@ class ReviewResource extends JsonResource
         return [
             'id' => $this->id,
             'status' => $this->status,
-            'status_label' => $this->status->label(),
+            'status_label' => $this->status?->label(),
             'score' => $this->score,
-            'score_label' => $this->score->label(),
-            'score_description' => $this->score->description(),
+            'score_label' => $this->score?->label(),
+            'score_description' => $this->score?->description(),
             'answers' => $this->answers ?? [],
             'comments' => $this->comments,
             'questions' => $this->questions,

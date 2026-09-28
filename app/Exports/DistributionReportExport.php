@@ -16,21 +16,22 @@ class DistributionReportExport implements FromCollection, WithHeadings, WithTitl
     public function collection(): Collection
     {
         return $this->selection->projects()
+            ->with('reviewAssignments.user')
             ->where('homologation_status', ProjectHomologationStatus::APPROVED)
             ->orderBy('candidate_name')
             ->get()
             ->map(function ($project): array {
-                $reviewers = $project->reviewAssignments->map(fn ($reviewAssignment) => $reviewAssignment->user->name);
+                $reviewers = $project->reviewAssignments->map(fn ($reviewAssignment) => $reviewAssignment->user?->name ?? 'N/A');
 
                 return [
                     $project->register_id,
                     $project->candidate_name,
-                    $project->modality->label(),
+                    $project->modality?->label() ?? '',
                     $project->title,
                     $reviewers->implode(', '),
-                    $project->stage->label(),
+                    $project->stage?->label() ?? '',
                     $project->rejected_on_stage?->label() ?? '',
-                    $project->updated_at->format('d/m/Y H:i'),
+                    $project->updated_at?->format('d/m/Y H:i') ?? '',
                 ];
             });
     }

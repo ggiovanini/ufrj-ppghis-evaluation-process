@@ -10,7 +10,6 @@ use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
 use App\Models\ReviewAssignment;
 use App\Models\SelectionProcess;
-use App\Models\User;
 
 class ProjectService
 {

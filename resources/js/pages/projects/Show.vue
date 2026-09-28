@@ -336,6 +336,7 @@ setLayoutProps({
 
                 <ProjectWrittenExam
                     :project="project"
+                    :phase="selection.data.phase"
                     :selection-id="selection.data.id"
                 />
 

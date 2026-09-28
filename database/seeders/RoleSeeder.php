@@ -44,6 +44,7 @@ class RoleSeeder extends Seeder
         ]);
 
         $master_committee->syncPermissions([
+            'projects.view',
             'review.results.view',
             'committee.evaluate',
             'committee.submit',
@@ -52,6 +53,7 @@ class RoleSeeder extends Seeder
         ]);
 
         $doctorate_committee->syncPermissions([
+            'projects.view',
             'review.results.view',
             'committee.evaluate',
             'committee.submit',

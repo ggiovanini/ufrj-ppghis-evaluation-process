@@ -16,7 +16,7 @@ import {
     Dot,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import Pagination from '@/components/Pagination.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +74,18 @@ const props = defineProps<{
 
 const page = usePage();
 const canReassign = authCan(page.props.auth, 'users.manage');
+const isModalityRestricted = computed(() => {
+    const auth = page.props.auth;
+
+    if (authCan(auth, 'projects.manage') || auth.roles.includes('admin')) {
+        return false;
+    }
+
+    return (
+        auth.roles.includes('master_committee') ||
+        auth.roles.includes('doctorate_committee')
+    );
+});
 const isReassignModalOpen = ref(false);
 const selectedProject = ref<Project | null>(null);
 const selectedAssignment = ref<ReviewAssignment | null>(null);
@@ -305,6 +317,7 @@ const reassignReviewer = () => {
                     </SelectContent>
                 </Select>
                 <Select
+                    v-if="!isModalityRestricted"
                     :model-value="selectedModality"
                     @update:model-value="
                         (value) => updateFilter('modality', value)

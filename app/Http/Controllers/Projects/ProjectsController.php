@@ -11,6 +11,7 @@ use App\Domain\SelectionProcess\Services\CommitteeReviewService;
 use App\Domain\SelectionProcess\Services\WrittenExamService;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Domain\Shared\Types\UserRoles;
+use App\Exports\AffirmativeActionReportExport;
 use App\Exports\CommitteeReportExport;
 use App\Exports\DistributionReportExport;
 use App\Exports\FinalResultReportExport;
@@ -41,13 +42,25 @@ class ProjectsController extends Controller
     {
         Gate::authorize('projects.view');
 
-        $projects = $selection->projects()
+        $user = $request->user();
+        $isAdmin = $user->hasRole(UserRoles::ADMIN->value) || $user->can('projects.manage');
+
+        if (! $isAdmin) {
+            $allowedPhases = [
+                SelectionProcessPhases::DISTRIBUTION,
+                SelectionProcessPhases::REVIEW,
+                SelectionProcessPhases::WRITTEN_EXAM,
+                SelectionProcessPhases::COMMITTEE,
+                SelectionProcessPhases::RESULTS,
+                SelectionProcessPhases::FINISHED,
+            ];
+            abort_unless(in_array($selection->phase, $allowedPhases, true), 403);
+        }
+
+        $projectsQuery = $selection->projects()
             ->with(['reviewAssignments.user', 'committeeEvaluation', 'finalResults'])
             ->when(ProjectStage::tryFrom($request->string('status')->toString()), function ($query, ProjectStage $status) {
                 $query->where('stage', $status);
-            })
-            ->when(ProjectModality::tryFrom($request->string('modality')->toString()), function ($query, ProjectModality $modality) {
-                $query->where('modality', $modality);
             })
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -59,7 +72,23 @@ class ProjectsController extends Controller
                 $query->orderBy($sort, $request->direction ?? 'asc');
             }, function ($query) {
                 $query->orderBy('candidate_name');
-            })
+            });
+
+        if (! $isAdmin) {
+            if ($user->hasRole(UserRoles::MASTER_COMMITTEE->value)) {
+                $projectsQuery->where('modality', ProjectModality::MASTER->value)
+                    ->whereNull('rejected_on_stage');
+            } elseif ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE->value)) {
+                $projectsQuery->where('modality', ProjectModality::DOCTORATE->value)
+                    ->whereNull('rejected_on_stage');
+            } elseif ($modality = ProjectModality::tryFrom($request->string('modality')->toString())) {
+                $projectsQuery->where('modality', $modality);
+            }
+        } elseif ($modality = ProjectModality::tryFrom($request->string('modality')->toString())) {
+            $projectsQuery->where('modality', $modality);
+        }
+
+        $projects = $projectsQuery
             ->paginate()
             ->withQueryString();
 
@@ -93,7 +122,19 @@ class ProjectsController extends Controller
         abort_unless(Gate::any(['projects.view', 'projects.manage', 'review.view-own', 'committee.evaluate']), 403);
 
         $user = auth()->user();
-        $canEvaluateCommittee = $user->can('committee.evaluate')
+        $isAdmin = $user->hasRole(UserRoles::ADMIN->value) || $user->can('projects.manage');
+
+        $allowedCommitteePhases = [
+            SelectionProcessPhases::DISTRIBUTION,
+            SelectionProcessPhases::REVIEW,
+            SelectionProcessPhases::WRITTEN_EXAM,
+            SelectionProcessPhases::COMMITTEE,
+            SelectionProcessPhases::RESULTS,
+            SelectionProcessPhases::FINISHED,
+        ];
+
+        $canEvaluateCommittee = in_array($selection->phase, $allowedCommitteePhases, true)
+            && $user->can('committee.evaluate')
             && (($user->hasRole(UserRoles::MASTER_COMMITTEE->value) && $project->modality === ProjectModality::MASTER)
                 || ($user->hasRole(UserRoles::DOCTORATE_COMMITTEE->value) && $project->modality === ProjectModality::DOCTORATE));
         $canEvaluateWrittenExam = $user->can('committee.evaluate')
@@ -103,7 +144,7 @@ class ProjectsController extends Controller
             && $project->stage === ProjectStage::WRITTEN_EXAM;
         $canManageHomologation = $selection->phase === SelectionProcessPhases::HOMOLOGATION
             && $user->can('projects.manage');
-        if (! $user->hasRole(UserRoles::ADMIN->value)
+        if (! $isAdmin
             && ! $canManageHomologation
             && ! $canEvaluateCommittee
             && ! $canEvaluateWrittenExam
@@ -250,6 +291,16 @@ class ProjectsController extends Controller
         return Excel::download(
             new FinalResultReportExport($selection),
             'relatorio-resultado-final-'.$selection->id.'.xlsx',
+        );
+    }
+
+    public function affirmativeActionReport(SelectionProcess $selection)
+    {
+        Gate::authorize('projects.manage');
+
+        return Excel::download(
+            new AffirmativeActionReportExport($selection),
+            'relatorio-acoes-afirmativas-'.$selection->id.'.xlsx',
         );
     }
 

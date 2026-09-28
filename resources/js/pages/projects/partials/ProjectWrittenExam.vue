@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { authCan } from '@/types';
 import type { Project, ProjectWithDetail } from '@/types/projects';
+import type { SelectionProcessPhase } from '@/types/selection-process';
 
 defineProps<{
     project: Project | ProjectWithDetail;
     selectionId: number;
+    phase: SelectionProcessPhase;
 }>();
 
 const page = usePage();
@@ -44,11 +46,15 @@ const editScore = () => {
                 Prova escrita
             </CardTitle>
             <Button
-                v-if="project.stage === 'written_exam' && (canManage || canEvaluateWrittenExam)"
+                v-if="
+                    project.stage === 'written_exam' &&
+                    (canManage || canEvaluateWrittenExam)
+                "
                 variant="ghost"
                 size="icon"
                 class="h-8 w-8"
                 @click="editScore"
+                :disabled="!['WRITTEN_EXAM'].includes(phase)"
             >
                 <Edit class="h-4 w-4" />
             </Button>
@@ -60,8 +66,19 @@ const editScore = () => {
                     {{ project.written_exam_score_label || '---' }}
                 </Badge>
             </div>
-            <div v-if="!project.written_exam_score && (canManage || canEvaluateWrittenExam)" class="mt-4">
-                <Button variant="outline" class="w-full" @click="editScore">
+            <div
+                v-if="
+                    !project.written_exam_score &&
+                    (canManage || canEvaluateWrittenExam)
+                "
+                class="mt-4"
+            >
+                <Button
+                    variant="outline"
+                    class="w-full"
+                    @click="editScore"
+                    :disabled="!['WRITTEN_EXAM'].includes(phase)"
+                >
                     Inserir Nota
                 </Button>
             </div>

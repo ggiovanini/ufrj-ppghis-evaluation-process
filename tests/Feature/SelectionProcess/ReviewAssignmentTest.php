@@ -350,3 +350,21 @@ test('can finalize distribution phase when all projects have at least 3 reviewer
 
     $this->assertEquals(SelectionProcessPhases::REVIEW, $this->selection->refresh()->phase);
 });
+
+test('assigning a reviewer automatically creates a pendent review record when review form is configured', function () {
+    $this->selection->update(['phase' => SelectionProcessPhases::REVIEW]);
+
+    $this->actingAs($this->admin)
+        ->post(route('selection.assignments.store', $this->selection), [
+            'project_id' => $this->project->id,
+            'user_id' => $this->reviewer->id,
+            'chosen_by_candidate' => false,
+        ])
+        ->assertRedirect();
+
+    $assignment = $this->project->reviewAssignments()->where('user_id', $this->reviewer->id)->first();
+    expect($assignment)->not->toBeNull();
+    expect($assignment->review)->not->toBeNull();
+    expect($assignment->review->status)->toBe(ReviewStatus::PENDENT);
+    expect($assignment->review->review_form_id)->toBe($this->selection->review_form_id);
+});

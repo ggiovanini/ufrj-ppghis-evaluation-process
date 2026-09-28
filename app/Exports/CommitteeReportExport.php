@@ -16,20 +16,21 @@ class CommitteeReportExport implements FromCollection, WithHeadings, WithTitle
     public function collection(): Collection
     {
         return $this->selection->projects()
+            ->with('committeeEvaluation')
             ->orderBy('candidate_name')
             ->get()
             ->map(fn ($project): array => [
                 $project->register_id,
                 $project->candidate_name,
-                $project->modality->label(),
+                $project->modality?->label() ?? '',
                 $project->title,
                 ProjectScore::make($project->review_score)->format(),
                 ProjectScore::make($project->written_exam_score)->format(),
                 ProjectScore::make($project->committee_score)->format(),
-                $project->committeeEvaluation->comments ?? '-',
-                $project->stage->label(),
+                $project->committeeEvaluation?->comments ?? '-',
+                $project->stage?->label() ?? '',
                 $project->rejected_on_stage?->label() ?? '',
-                $project->updated_at->format('d/m/Y H:i'),
+                $project->updated_at?->format('d/m/Y H:i') ?? '',
             ]);
     }
 

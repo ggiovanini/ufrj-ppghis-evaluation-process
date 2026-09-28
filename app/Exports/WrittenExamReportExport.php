@@ -21,13 +21,13 @@ class WrittenExamReportExport implements FromCollection, WithHeadings, WithTitle
             ->map(fn ($project): array => [
                 $project->register_id,
                 $project->candidate_name,
-                $project->modality->label(),
+                $project->modality?->label() ?? '',
                 $project->title,
                 ProjectScore::make($project->review_score)->format(),
                 ProjectScore::make($project->written_exam_score)->format(),
-                $project->stage->label(),
+                $project->stage?->label() ?? '',
                 $project->rejected_on_stage?->label() ?? '',
-                $project->updated_at->format('d/m/Y H:i'),
+                $project->updated_at?->format('d/m/Y H:i') ?? '',
             ]);
     }
 

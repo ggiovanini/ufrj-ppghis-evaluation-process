@@ -7,8 +7,8 @@ use App\Domain\SelectionProcess\Services\CommitteeReviewService;
 use App\Domain\Shared\Types\UserRoles;
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('committee:complete {number?}')]

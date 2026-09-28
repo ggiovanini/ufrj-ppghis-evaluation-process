@@ -11,6 +11,7 @@ use App\Domain\SelectionProcess\Exceptions\ProjectsAreNotInComplianceException;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
 use App\Models\ReviewAssignment;
+use App\Models\ReviewForm;
 use App\Models\SelectionProcess;
 use App\Models\User;
 
@@ -27,11 +28,24 @@ class ReviewService
 
     public function createReviewAssignment(Project $project, User $reviewer, bool $chosen_by_candidate = false): void
     {
-        $project->reviewAssignments()->updateOrCreate([
+        $assignment = $project->reviewAssignments()->updateOrCreate([
             'user_id' => $reviewer->id,
         ], [
             'chosen_by_candidate' => $chosen_by_candidate,
         ]);
+
+        $selection = $this->selectionProcess ?? $project->selectionProcess;
+        $reviewFormId = $selection?->review_form_id
+            ?? $selection?->reviewForm?->id
+            ?? ReviewForm::where('active', true)->first()?->id
+            ?? ReviewForm::first()?->id;
+
+        if ($reviewFormId && ! $assignment->review()->exists()) {
+            $assignment->review()->create([
+                'review_form_id' => $reviewFormId,
+                'status' => ReviewStatus::PENDENT,
+            ]);
+        }
 
         if ($this->selectionProcess && $this->selectionProcess->phase !== SelectionProcessPhases::IMPORT) {
             $projectAssignmentCount = $project->reviewAssignments()->count();
@@ -46,11 +60,23 @@ class ReviewService
     public function createForProject(Project $project): void
     {
         $reviewAssignments = $project->reviewAssignments;
-        $reviewAssignments->each(function (ReviewAssignment $reviewAssignment) {
-            $reviewAssignment->review()->create([
-                'review_form_id' => $this->selectionProcess->reviewForm->id,
-                'status' => ReviewStatus::PENDENT,
-            ]);
+        $reviewFormId = $this->selectionProcess?->review_form_id
+            ?? $this->selectionProcess?->reviewForm?->id
+            ?? $project->selectionProcess?->review_form_id
+            ?? ReviewForm::where('active', true)->first()?->id
+            ?? ReviewForm::first()?->id;
+
+        if (! $reviewFormId) {
+            return;
+        }
+
+        $reviewAssignments->each(function (ReviewAssignment $reviewAssignment) use ($reviewFormId) {
+            if (! $reviewAssignment->review()->exists()) {
+                $reviewAssignment->review()->create([
+                    'review_form_id' => $reviewFormId,
+                    'status' => ReviewStatus::PENDENT,
+                ]);
+            }
         });
     }
 

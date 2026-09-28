@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectScore;
+use App\Domain\Review\Types\ReviewScore;
 use App\Models\SelectionProcess;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -17,22 +18,28 @@ class ReviewReportExport implements FromCollection, WithHeadings, WithTitle
     public function collection(): Collection
     {
         return $this->selection->projects()
+            ->with(['reviewAssignments.user', 'reviewAssignments.review'])
             ->where('homologation_status', ProjectHomologationStatus::APPROVED)
             ->orderBy('candidate_name')
             ->get()
             ->map(function ($project): array {
-                $reviewers = $project->reviewAssignments->map(fn ($reviewAssignment) => "{$reviewAssignment->user->name} ({$reviewAssignment->review->score->label()})");
+                $reviewers = $project->reviewAssignments->map(function ($reviewAssignment): string {
+                    $userName = $reviewAssignment->user?->name ?? 'N/A';
+                    $scoreLabel = $reviewAssignment->review?->score?->label() ?? ReviewScore::PENDENT->label();
+
+                    return "{$userName} ({$scoreLabel})";
+                });
 
                 return [
                     $project->register_id,
                     $project->candidate_name,
-                    $project->modality->label(),
+                    $project->modality?->label() ?? '',
                     $project->title,
                     $reviewers->implode(', '),
                     ProjectScore::make($project->review_score)->format(),
-                    $project->stage->label(),
+                    $project->stage?->label() ?? '',
                     $project->rejected_on_stage?->label() ?? '',
-                    $project->updated_at->format('d/m/Y H:i'),
+                    $project->updated_at?->format('d/m/Y H:i') ?? '',
                 ];
             });
     }

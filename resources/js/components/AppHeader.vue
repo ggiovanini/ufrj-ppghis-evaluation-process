@@ -7,6 +7,8 @@ import {
     UserCogIcon,
     Layers2Icon,
     FileArchive,
+    FileSpreadsheet,
+    Download,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -17,6 +19,9 @@ import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -95,11 +100,28 @@ const mainNavItems = computed((): NavItem[] => {
         auth.value.currentSelectionProcess &&
         authCan(auth.value, 'projects.view')
     ) {
-        result.push({
-            title: 'Projetos',
-            href: routeProjects.index(auth.value.currentSelectionProcess),
-            icon: FileArchive,
-        });
+        const isAdmin =
+            authCan(auth.value, 'projects.manage') ||
+            auth.value.roles.includes('admin');
+        const allowedPhases = [
+            'DISTRIBUTION',
+            'REVIEW',
+            'WRITTEN_EXAM',
+            'COMMITTEE',
+            'RESULTS',
+            'FINISHED',
+        ];
+
+        if (
+            isAdmin ||
+            allowedPhases.includes(auth.value.currentSelectionProcess.phase)
+        ) {
+            result.push({
+                title: 'Projetos',
+                href: routeProjects.index(auth.value.currentSelectionProcess),
+                icon: FileArchive,
+            });
+        }
     }
 
     if (
@@ -138,28 +160,90 @@ const mainNavItems = computed((): NavItem[] => {
     return result;
 });
 
+const isAdmin = computed(() => {
+    return (
+        auth.value.roles.includes('admin') ||
+        authCan(auth.value, 'projects.manage')
+    );
+});
+
+const reportItems = computed(() => {
+    if (!auth.value.currentSelectionProcess || !isAdmin.value) {
+        return [];
+    }
+
+    const sel = auth.value.currentSelectionProcess;
+
+    return [
+        {
+            title: 'Homologação',
+            href: selectionRoute.projects.homologation.report({ selection: sel.id }),
+        },
+        {
+            title: 'Distribuição',
+            href: selectionRoute.projects.distribution.report({ selection: sel.id }),
+        },
+        {
+            title: 'Avaliação',
+            href: selectionRoute.projects.review.report({ selection: sel.id }),
+        },
+        {
+            title: 'Prova Escrita',
+            href: selectionRoute.projects.writtenExam.report({ selection: sel.id }),
+        },
+        {
+            title: 'Comitê',
+            href: selectionRoute.projects.committee.report({ selection: sel.id }),
+        },
+        {
+            title: 'Resultado Final',
+            href: selectionRoute.projects.finalResult.report({ selection: sel.id }),
+        },
+        {
+            title: 'Ações Afirmativas',
+            href: selectionRoute.projects.affirmativeAction.report({ selection: sel.id }),
+        },
+    ];
+});
+
+const teamNavItem = computed((): NavItem | null => {
+    if (!authCan(auth.value, 'users.manage')) {
+        return null;
+    }
+
+    return {
+        title: 'Equipe',
+        href: teamList(),
+        icon: UserCogIcon,
+        target: '_self',
+    };
+});
+
+const documentsNavItem = computed((): NavItem | null => {
+    if (
+        !auth.value.currentSelectionProcess ||
+        !auth.value.roles.includes('admin')
+    ) {
+        return null;
+    }
+
+    return {
+        title: 'Arquivos',
+        href: selectionRoute.documents.index(),
+        icon: Folder,
+        target: '_self',
+    };
+});
+
 const rightNavItems = computed((): NavItem[] => {
     const result: NavItem[] = [];
 
-    if (authCan(auth.value, 'users.manage')) {
-        result.push({
-            title: 'Equipe',
-            href: teamList(),
-            icon: UserCogIcon,
-            target: '_self',
-        });
+    if (teamNavItem.value) {
+        result.push(teamNavItem.value);
     }
 
-    if (
-        auth.value.currentSelectionProcess &&
-        auth.value.roles.includes('admin')
-    ) {
-        result.push({
-            title: 'Arquivos',
-            href: selectionRoute.documents.index(),
-            icon: Folder,
-            target: '_self',
-        });
+    if (documentsNavItem.value) {
+        result.push(documentsNavItem.value);
     }
 
     return result;
@@ -238,6 +322,38 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                                         />
                                         <span>{{ item.title }}</span>
                                     </a>
+
+                                    <div
+                                        v-if="reportItems.length > 0"
+                                        class="border-t border-sidebar-border/70 pt-4"
+                                    >
+                                        <div
+                                            class="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                                        >
+                                            Relatórios
+                                        </div>
+                                        <div class="space-y-1">
+                                            <a
+                                                v-for="report in reportItems"
+                                                :key="report.title"
+                                                :href="toUrl(report.href)"
+                                                download
+                                                class="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm font-medium hover:bg-accent"
+                                            >
+                                                <span
+                                                    class="flex items-center gap-x-2"
+                                                >
+                                                    <FileSpreadsheet
+                                                        class="h-4 w-4 opacity-70"
+                                                    />
+                                                    {{ report.title }}
+                                                </span>
+                                                <Download
+                                                    class="h-4 w-4 opacity-70"
+                                                />
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </SheetContent>
@@ -292,43 +408,120 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
                 <div class="ml-auto flex items-center space-x-2">
                     <div class="relative flex items-center space-x-1">
-                        <div class="hidden space-x-1 lg:flex">
-                            <template
-                                v-for="item in rightNavItems"
-                                :key="item.title"
+                        <div class="hidden items-center space-x-1 lg:flex">
+                            <TooltipProvider
+                                v-if="teamNavItem"
+                                :delay-duration="0"
                             >
-                                <TooltipProvider :delay-duration="0">
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                as-child
-                                                class="group h-9 w-9 cursor-pointer"
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            as-child
+                                            class="group h-9 w-9 cursor-pointer"
+                                        >
+                                            <a
+                                                :href="toUrl(teamNavItem.href)"
+                                                :target="
+                                                    teamNavItem?.target ??
+                                                    '_blank'
+                                                "
+                                                rel="noopener noreferrer"
                                             >
-                                                <a
-                                                    :href="toUrl(item.href)"
-                                                    :target="
-                                                        item?.target ?? '_blank'
-                                                    "
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <span class="sr-only">{{
-                                                        item.title
-                                                    }}</span>
-                                                    <component
-                                                        :is="item.icon"
-                                                        class="size-5 opacity-80 group-hover:opacity-100"
-                                                    />
-                                                </a>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>{{ item.title }}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </template>
+                                                <span class="sr-only">{{
+                                                    teamNavItem.title
+                                                }}</span>
+                                                <component
+                                                    :is="teamNavItem.icon"
+                                                    class="size-5 opacity-80 group-hover:opacity-100"
+                                                />
+                                            </a>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{{ teamNavItem.title }}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            <DropdownMenu v-if="reportItems.length > 0">
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="group h-9 w-9 cursor-pointer"
+                                        aria-label="Relatórios"
+                                        title="Relatórios"
+                                    >
+                                        <span class="sr-only">Relatórios</span>
+                                        <FileSpreadsheet
+                                            class="size-5 opacity-80 group-hover:opacity-100"
+                                        />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" class="w-56">
+                                    <DropdownMenuLabel
+                                        >Relatórios para
+                                        download</DropdownMenuLabel
+                                    >
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        v-for="report in reportItems"
+                                        :key="report.title"
+                                        as-child
+                                    >
+                                        <a
+                                            :href="toUrl(report.href)"
+                                            download
+                                            class="flex w-full cursor-pointer items-center justify-between"
+                                        >
+                                            <span>{{ report.title }}</span>
+                                            <Download
+                                                class="ml-2 h-4 w-4 opacity-70"
+                                            />
+                                        </a>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <TooltipProvider
+                                v-if="documentsNavItem"
+                                :delay-duration="0"
+                            >
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            as-child
+                                            class="group h-9 w-9 cursor-pointer"
+                                        >
+                                            <a
+                                                :href="
+                                                    toUrl(documentsNavItem.href)
+                                                "
+                                                :target="
+                                                    documentsNavItem?.target ??
+                                                    '_blank'
+                                                "
+                                                rel="noopener noreferrer"
+                                            >
+                                                <span class="sr-only">{{
+                                                    documentsNavItem.title
+                                                }}</span>
+                                                <component
+                                                    :is="documentsNavItem.icon"
+                                                    class="size-5 opacity-80 group-hover:opacity-100"
+                                                />
+                                            </a>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{{ documentsNavItem.title }}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </div>
 

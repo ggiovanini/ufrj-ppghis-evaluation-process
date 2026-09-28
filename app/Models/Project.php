@@ -80,6 +80,16 @@ class Project extends Model
         return $this->hasMany(ProjectDocumentVersion::class);
     }
 
+    public function isAffirmativeAction(): bool
+    {
+        $value = $this->original_content['deseja_concorrer_sob_o_sistema_de_acoes_afirmativas'] ?? null;
+        if (! is_string($value) || $value === '') {
+            return false;
+        }
+
+        return str_starts_with(strtolower(trim($value)), 's');
+    }
+
     public function reject(): void
     {
         if ($this->stage !== ProjectStage::REJECTED) {
