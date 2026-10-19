@@ -145,7 +145,7 @@ class ReviewAssigmentService
 
         $projects->each(function (Project $project) {
             $project->update([
-                'stage', ProjectStage::REVIEW,
+                'stage' => ProjectStage::REVIEW,
             ]);
         });
     }

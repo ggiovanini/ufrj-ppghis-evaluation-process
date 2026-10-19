@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Projects\Services\ProjectService;
+use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectStage;
 use App\Domain\Review\Types\ReviewScore;
 use App\Models\Project;
@@ -61,4 +62,34 @@ test('it handles non-integer results and updates stage to rejected if score is l
     expect($project->review_score)->toBe(300);
     expect($project->stage)->toBe(ProjectStage::REJECTED)
         ->and($project->rejected_on_stage)->toBe(ProjectStage::IMPORTED);
+});
+
+test('it resets stage to homologated when deleting review assignment for an approved project', function () {
+    $project = Project::factory()->create([
+        'stage' => ProjectStage::REVIEW,
+        'homologation_status' => ProjectHomologationStatus::APPROVED,
+    ]);
+
+    $assignment = ReviewAssignment::factory()->create(['project_id' => $project->id]);
+
+    $service = new ProjectService($project);
+    $service->deleteReviewAssignment($assignment);
+
+    expect($project->fresh()->stage)->toBe(ProjectStage::HOMOLOGATED)
+        ->and($project->fresh()->reviewAssignments)->toHaveCount(0);
+});
+
+test('it resets stage to imported when deleting review assignment for an unapproved project', function () {
+    $project = Project::factory()->create([
+        'stage' => ProjectStage::REVIEW,
+        'homologation_status' => ProjectHomologationStatus::PENDING,
+    ]);
+
+    $assignment = ReviewAssignment::factory()->create(['project_id' => $project->id]);
+
+    $service = new ProjectService($project);
+    $service->deleteReviewAssignment($assignment);
+
+    expect($project->fresh()->stage)->toBe(ProjectStage::IMPORTED)
+        ->and($project->fresh()->reviewAssignments)->toHaveCount(0);
 });

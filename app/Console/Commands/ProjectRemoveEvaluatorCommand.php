@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectStage;
 use App\Models\Project;
 use Illuminate\Console\Attributes\Description;
@@ -55,8 +56,12 @@ class ProjectRemoveEvaluatorCommand extends Command
         $remainingCount = $project->reviewAssignments()->count();
 
         if ($remainingCount < 3) {
+            $fallbackStage = $project->homologation_status === ProjectHomologationStatus::APPROVED
+                ? ProjectStage::HOMOLOGATED
+                : ProjectStage::IMPORTED;
+
             $project->update([
-                'stage' => ProjectStage::IMPORTED,
+                'stage' => $fallbackStage,
             ]);
         }
 

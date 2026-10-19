@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Projects\Types\ProjectStage;
 use App\Domain\Review\Types\ReviewStatus;
 use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
@@ -349,6 +350,7 @@ test('can finalize distribution phase when all projects have at least 3 reviewer
         ->assertRedirect();
 
     $this->assertEquals(SelectionProcessPhases::REVIEW, $this->selection->refresh()->phase);
+    expect($this->project->fresh()->stage)->toBe(ProjectStage::REVIEW);
 });
 
 test('assigning a reviewer automatically creates a pendent review record when review form is configured', function () {

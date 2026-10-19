@@ -405,7 +405,7 @@ class ProjectsController extends Controller
                 ->where('stage', ProjectStage::HOMOLOGATED)
                 ->each(function (Project $project) {
                     $project->reviewAssignments()->delete();
-                    $project->update(['stage', ProjectStage::IMPORTED]);
+                    $project->update(['stage' => ProjectStage::IMPORTED]);
                 });
 
             return back();
@@ -416,7 +416,7 @@ class ProjectsController extends Controller
                 ->where('stage', ProjectStage::REVIEW)
                 ->each(function (Project $project) {
                     $project->reviewAssignments()->delete();
-                    $project->update(['stage', ProjectStage::HOMOLOGATED]);
+                    $project->update(['stage' => ProjectStage::HOMOLOGATED]);
                 });
 
             return back();

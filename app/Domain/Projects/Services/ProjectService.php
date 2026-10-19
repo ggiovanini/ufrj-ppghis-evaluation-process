@@ -2,6 +2,7 @@
 
 namespace App\Domain\Projects\Services;
 
+use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Projects\Types\ProjectScore;
 use App\Domain\Projects\Types\ProjectStage;
@@ -34,8 +35,13 @@ class ProjectService
         } else {
             $this->project->reviewAssignments()->delete();
         }
+
+        $fallbackStage = $this->project->homologation_status === ProjectHomologationStatus::APPROVED
+            ? ProjectStage::HOMOLOGATED
+            : ProjectStage::IMPORTED;
+
         $this->project->update([
-            'stage' => ProjectStage::IMPORTED,
+            'stage' => $fallbackStage,
         ]);
     }
 

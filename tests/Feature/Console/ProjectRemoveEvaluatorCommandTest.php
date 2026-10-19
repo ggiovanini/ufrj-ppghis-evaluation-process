@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Projects\Types\ProjectHomologationStatus;
 use App\Domain\Projects\Types\ProjectStage;
 use App\Models\Project;
 use App\Models\SelectionProcess;
@@ -72,7 +73,7 @@ test('it can remove an evaluator with force flag when project has excess evaluat
     $this->assertEquals(ProjectStage::REVIEW, $this->project->stage);
 });
 
-test('it resets stage to imported if remaining evaluators is less than 3', function () {
+test('it resets stage to homologated if project is approved and remaining evaluators is less than 3', function () {
     $reviewers = User::factory(3)->create();
     foreach ($reviewers as $reviewer) {
         $reviewer->assignRole($this->reviewerRole);
@@ -96,6 +97,31 @@ test('it resets stage to imported if remaining evaluators is less than 3', funct
         'project_id' => $this->project->id,
         'user_id' => $evaluatorToRemove->id,
     ]);
+
+    $this->assertEquals(ProjectStage::HOMOLOGATED, $this->project->refresh()->stage);
+});
+
+test('it resets stage to imported if project is not approved and remaining evaluators is less than 3', function () {
+    $this->project->update(['homologation_status' => ProjectHomologationStatus::PENDING]);
+
+    $reviewers = User::factory(3)->create();
+    foreach ($reviewers as $reviewer) {
+        $reviewer->assignRole($this->reviewerRole);
+        $this->project->reviewAssignments()->create([
+            'user_id' => $reviewer->id,
+            'chosen_by_candidate' => false,
+        ]);
+    }
+
+    $evaluatorToRemove = $reviewers->first();
+
+    $this->artisan('projects:remove-evaluator', [
+        'project' => $this->project->id,
+        'user' => $evaluatorToRemove->id,
+        '--force' => true,
+    ])
+        ->expectsOutput('Total restante de avaliadores no projeto: 2')
+        ->assertSuccessful();
 
     $this->assertEquals(ProjectStage::IMPORTED, $this->project->refresh()->stage);
 });
