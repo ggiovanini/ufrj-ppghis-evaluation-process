@@ -259,7 +259,11 @@ setLayoutProps({
                                 v-if="authCan(auth, 'projects.manage')"
                                 :project="project"
                             />
-                            <ProjectDataResume v-else :project="project" />
+                            <ProjectDataResume
+                                v-else
+                                :project="project"
+                                :roles="auth.roles"
+                            />
                         </div>
                     </CardContent>
                 </Card>

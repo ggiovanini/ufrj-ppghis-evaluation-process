@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Download, ExternalLink, FileText } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import {
     Dialog,
     DialogContent,
@@ -11,9 +11,12 @@ import {
 } from '@/components/ui/dialog';
 import type { ProjectWithDetail as Project } from '@/types/projects';
 
-defineProps<{
+const props = defineProps<{
     project: Project;
+    roles: string[];
 }>();
+
+const normalizeDocumentLabel = (label: string) => label.trim().toLowerCase();
 
 type ProjectDocument = {
     label: string;
@@ -24,6 +27,43 @@ type ProjectDocument = {
 };
 
 const selectedDocument = ref<ProjectDocument | null>(null);
+
+const visibleDocuments = computed(() => {
+    const labels = ['projeto'];
+
+    if (
+        props.roles.includes('master_committee') ||
+        props.roles.includes('doctorate_committee')
+    ) {
+        labels.push('memorial');
+    }
+
+    return (
+        props.project.content?.documents?.filter((document) =>
+            labels.includes(normalizeDocumentLabel(document.label)),
+        ) ?? []
+    );
+});
+
+const visibleDocumentLabels = computed(
+    () =>
+        new Set(
+            visibleDocuments.value.map((document) =>
+                normalizeDocumentLabel(document.label),
+            ),
+        ),
+);
+
+const documentSectionTitle = computed(() => {
+    const hasProject = visibleDocumentLabels.value.has('projeto');
+    const hasMemorial = visibleDocumentLabels.value.has('memorial');
+
+    if (hasProject && hasMemorial) {
+        return 'Projeto e Memorial';
+    }
+
+    return hasMemorial ? 'Memorial' : 'Projeto';
+});
 
 const openDocument = (document: ProjectDocument) => {
     selectedDocument.value = document;
@@ -44,13 +84,11 @@ const isImageDocument = (document: ProjectDocument) =>
 
 <template>
     <div class="z-10 space-y-6">
-        <div v-if="project.content?.documents?.length" class="space-y-4">
-            <h4 class="text-lg font-semibold">Projeto</h4>
+        <div v-if="visibleDocuments.length" class="space-y-4">
+            <h4 class="text-lg font-semibold">{{ documentSectionTitle }}</h4>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div
-                    v-for="(doc, index) in project.content.documents.filter(
-                        (item) => item.label.toLocaleLowerCase() === 'projeto',
-                    )"
+                    v-for="(doc, index) in visibleDocuments"
                     :key="index"
                     class="flex items-center justify-between rounded-lg border bg-card p-4"
                 >

@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\Projects\Types\ProjectModality;
 use App\Domain\Review\Types\ReviewStatus;
+use App\Domain\SelectionProcess\Types\SelectionProcessPhases;
 use App\Models\Project;
 use App\Models\Review;
 use App\Models\ReviewAssignment;
@@ -63,3 +65,52 @@ test('it can render project details page', function () {
         )
     );
 });
+
+test('it shares audience roles and project documents on the project details page', function (string $role) {
+    Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'projects.view', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'committee.evaluate', 'guard_name' => 'web']);
+
+    $selection = SelectionProcess::factory()->create([
+        'phase' => SelectionProcessPhases::COMMITTEE,
+    ]);
+    $modality = $role === 'doctorate_committee'
+        ? ProjectModality::DOCTORATE
+        : ProjectModality::MASTER;
+    $documents = [
+        ['label' => 'Projeto', 'name' => 'projeto.pdf', 'filename' => 'projeto.pdf'],
+        ['label' => 'Memorial', 'name' => 'memorial.pdf', 'filename' => 'memorial.pdf'],
+        ['label' => 'Ficha', 'name' => 'ficha.pdf', 'filename' => 'ficha.pdf'],
+    ];
+    $project = Project::factory()->create([
+        'selection_process_id' => $selection->id,
+        'modality' => $modality,
+        'content' => ['documents' => $documents],
+    ]);
+    $user = User::factory()->create();
+    $user->assignRole($role);
+
+    if ($role === 'reviewer') {
+        $user->givePermissionTo('projects.view');
+
+        ReviewAssignment::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $user->id,
+        ]);
+    } else {
+        $user->givePermissionTo('committee.evaluate');
+    }
+
+    $this->actingAs($user)
+        ->get(route('selection.projects.show', [$selection, $project]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('projects/Show')
+            ->where('auth.roles', [$role])
+            ->where('project.content.documents', $documents)
+        );
+})->with([
+    'master committee' => 'master_committee',
+    'doctorate committee' => 'doctorate_committee',
+    'reviewer' => 'reviewer',
+]);
