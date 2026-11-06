@@ -85,6 +85,7 @@ const openViewReviewModal = (assignment: ReviewAssignment) => {
                 <div
                     v-if="
                         authCan(auth, 'users.manage') ||
+                        authCan(auth, 'committee.evaluate') ||
                         assignment.user.id === auth.user.id
                     "
                     class="rounded-lg border border-muted bg-card px-4 pt-3 pb-4 text-sm"
